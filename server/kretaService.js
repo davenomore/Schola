@@ -179,7 +179,11 @@ class KretaService {
     } catch (error) {
       console.error('Kréta belépési hiba:', error);
       if (!this.browser || !this.browser.isConnected()) {
-        return { success: false, message: 'Nem sikerült elindítani a háttérböngészőt. Kérjük próbálja újra!' };
+        return { 
+          success: false, 
+          message: 'Nem sikerült elindítani a háttérböngészőt: ' + error.message,
+          error: error.message 
+        };
       }
       // Ha manuálisan lépett be a felhasználó, akkor is sikeresnek vesszük, ha nincs komoly hiba
       return { success: true }; 

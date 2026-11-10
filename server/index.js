@@ -18,7 +18,11 @@ app.post('/api/login', async (req, res) => {
     if (result.success) {
       res.json({ success: true, message: 'Sikeres bejelentkezés' });
     } else {
-      res.status(401).json({ success: false, message: 'Hibás adatok vagy a Kréta nem elérhető' });
+      res.status(401).json({ 
+        success: false, 
+        message: result.message || 'Hibás adatok vagy a Kréta nem elérhető',
+        details: result.error || null
+      });
     }
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
