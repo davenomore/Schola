@@ -54,7 +54,12 @@ class KretaService {
       const isDev = process.env.NODE_ENV !== 'production' && !process.env.RENDER;
       const launchOptions = {
         headless: process.env.HEADLESS !== undefined ? process.env.HEADLESS === 'true' : !isDev,
-        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-blink-features=AutomationControlled'
+        ]
       };
 
       if (process.env.CHROME_PATH && fs.existsSync(process.env.CHROME_PATH)) {
@@ -64,7 +69,19 @@ class KretaService {
       }
 
       this.browser = await chromium.launch(launchOptions); 
-      const context = await this.browser.newContext();
+      const context = await this.browser.newContext({
+        userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        viewport: { width: 1280, height: 800 },
+        locale: 'hu-HU',
+        timezoneId: 'Europe/Budapest',
+      });
+
+      await context.addInitScript(() => {
+        Object.defineProperty(navigator, 'webdriver', {
+          get: () => undefined,
+        });
+      });
+
       this.page = await context.newPage();
     }
   }
@@ -117,7 +134,10 @@ class KretaService {
       console.log('Navigálás a Kréta belépési oldalára...');
       // Itt a schoolId alapján generáljuk le az iskola pontos Kréta linkjét
       const loginUrl = `https://${schoolId}.e-kreta.hu/Adminisztracio/Login`;
-      await this.page.goto(loginUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await this.page.goto(loginUrl, { waitUntil: 'commit', timeout: 30000 }).catch(async (e) => {
+        console.warn('page.goto commit figyelmeztetés:', e.message);
+      });
+      await this.page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
       
       // Megvárjuk az IDP bejelentkező oldal / átirányítás betöltődését
       await this.page.waitForURL(url => url.href.includes('idp.e-kreta.hu') || url.href.includes('Login'), { timeout: 15000 }).catch(() => {});

@@ -12,6 +12,26 @@ app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
 
+app.get('/api/ping-kreta', async (req, res) => {
+  try {
+    const start = Date.now();
+    const fetchRes = await fetch('https://bmszc-neumann.e-kreta.hu/Adminisztracio/Login', {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'
+      },
+      redirect: 'manual'
+    });
+    res.json({
+      status: fetchRes.status,
+      ok: fetchRes.ok || fetchRes.status === 302,
+      location: fetchRes.headers.get('location'),
+      elapsedMs: Date.now() - start
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Bejelentkezési végpont
 app.post('/api/login', async (req, res) => {
   const { username, password, schoolId } = req.body;
