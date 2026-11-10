@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { API_BASE } from '../config';
 
 const Groups = () => {
   const [groups, setGroups] = useState(() => {
@@ -24,7 +25,7 @@ const Groups = () => {
 
   useEffect(() => {
     // Háttérszinkronizáció a Krétából
-    fetch('http://localhost:3001/api/groups?refresh=true')
+    fetch(`${API_BASE}/api/groups?refresh=true`)
       .then(res => res.json())
       .then(data => {
         if (data.success && data.data.length > 0) {

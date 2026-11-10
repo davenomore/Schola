@@ -6,6 +6,7 @@ import TeacherTools from './components/TeacherTools';
 import Exams from './components/Exams';
 import HeadTeacher from './components/HeadTeacher';
 import { DEFAULT_VACATIONS, parseLocalDate } from './utils/schoolHolidays';
+import { API_BASE } from './config';
 
 function App() {
   const [isDarkTheme, setIsDarkTheme] = useState(false);
@@ -438,7 +439,7 @@ function App() {
 
   const fetchSchedule = (dayIndex = null) => {
     setLoadingSchedule(true);
-    const url = dayIndex !== null ? `http://localhost:3001/api/timetable?day=${dayIndex}` : 'http://localhost:3001/api/timetable';
+    const url = dayIndex !== null ? `${API_BASE}/api/timetable?day=${dayIndex}` : `${API_BASE}/api/timetable`;
     fetch(url)
       .then(res => {
         if (!res.ok && res.status === 500) {
@@ -500,7 +501,7 @@ function App() {
     setIsLoggingIn(true);
     setLoginError('');
 
-    fetch('http://localhost:3001/api/login', {
+    fetch(`${API_BASE}/api/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password, schoolId: 'bmszc-neumann' })
@@ -614,7 +615,7 @@ function App() {
       for (const ora of uniqueMissing) {
         setSyncStatus(`${ora.subject} - ${ora.details} diákok letöltése...`);
         try {
-          const response = await fetch('http://localhost:3001/api/students', {
+          const response = await fetch(`${API_BASE}/api/students`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 

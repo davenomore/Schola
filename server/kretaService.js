@@ -49,11 +49,19 @@ class KretaService {
     }
 
     if (!this.browser) {
-      // A headless: false esetén megnyílik egy igazi böngészőablak, ami jó a fejlesztéshez!
-      this.browser = await chromium.launch({ 
-        headless: false,
-        executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-      }); 
+      const isDev = process.env.NODE_ENV !== 'production' && !process.env.RENDER;
+      const launchOptions = {
+        headless: process.env.HEADLESS !== undefined ? process.env.HEADLESS === 'true' : !isDev,
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage']
+      };
+
+      if (process.env.CHROME_PATH && fs.existsSync(process.env.CHROME_PATH)) {
+        launchOptions.executablePath = process.env.CHROME_PATH;
+      } else if (isDev && fs.existsSync('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')) {
+        launchOptions.executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+      }
+
+      this.browser = await chromium.launch(launchOptions); 
       const context = await this.browser.newContext();
       this.page = await context.newPage();
     }

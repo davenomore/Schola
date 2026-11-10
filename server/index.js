@@ -1,12 +1,14 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
+const fs = require('fs');
 const kretaService = require('./kretaService');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // Bejelentkezési végpont
 app.post('/api/login', async (req, res) => {
@@ -126,6 +128,15 @@ app.post('/api/students', async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+// Statikus frontend kiszolgálása ha létezik a dist mappa (pl. éles környezetben / Render-en)
+const distPath = path.join(__dirname, '..', 'dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get(/^(?!\/api).*/, (req, res) => {
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`[Backend] Kréta API háttérszolgáltatás elindult a ${PORT}-es porton`);

@@ -8,6 +8,9 @@
     "dev:frontend": "vite --host",
     "server": "node --watch server/index.js",
     "build": "vite build",
+    "build:render": "npm run build && cd server && npm install && npx playwright install chromium",
+    "start": "node server/index.js",
+    "postinstall": "cd server && npm install",
     "lint": "oxlint",
     "preview": "vite preview"
   },

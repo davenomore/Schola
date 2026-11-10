@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getExamDeadlineInfo, DEFAULT_VACATIONS } from '../utils/schoolHolidays';
+import { API_BASE } from '../config';
 
 const COLUMNS = [
   { id: 'planned', title: 'Tervezett (Összeállítás)', color: 'var(--accent-color)' },
@@ -49,7 +50,7 @@ const Exams = ({ addNotification, vacationDates: propVacations }) => {
     setIsLoading(true);
     setSyncStatus('Adatok letöltése a Krétából...');
     try {
-      const response = await fetch('http://localhost:3001/api/exams');
+      const response = await fetch(`${API_BASE}/api/exams`);
       const data = await response.json();
       
       if (data.success && Array.isArray(data.data)) {
@@ -118,7 +119,7 @@ const Exams = ({ addNotification, vacationDates: propVacations }) => {
     // Csoportok lekérése a legördülőhöz
     const fetchGroups = async () => {
       try {
-        const response = await fetch('http://localhost:3001/api/groups');
+        const response = await fetch(`${API_BASE}/api/groups`);
         const data = await response.json();
         if (data.success && data.data) {
           setGroups(data.data.map(g => ({

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import nameDays from '../utils/nameDays.json';
+import { API_BASE } from '../config';
 
 const HeadTeacher = ({ addNotification }) => {
   const [students, setStudents] = useState([]);
@@ -15,7 +16,7 @@ const HeadTeacher = ({ addNotification }) => {
   const fetchClassList = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('http://localhost:3001/api/my-class');
+      const response = await fetch(`${API_BASE}/api/my-class`);
       const data = await response.json();
       if (data.success && data.data) {
         setStudents(data.data);
@@ -24,7 +25,7 @@ const HeadTeacher = ({ addNotification }) => {
       // Ha cache-ből jött, háttérben lekérjük a frisset
       if (data.fromCache) {
         setSyncStatus('Szinkronizálás folyamatban...');
-        fetch('http://localhost:3001/api/my-class?refresh=true')
+        fetch(`${API_BASE}/api/my-class?refresh=true`)
           .then(res => res.json())
           .then(freshData => {
             if (freshData.success && freshData.data) {
@@ -48,14 +49,14 @@ const HeadTeacher = ({ addNotification }) => {
   const fetchClassSchedule = async () => {
     setLoadingClassSchedule(true);
     try {
-      const response = await fetch('http://localhost:3001/api/class-timetable');
+      const response = await fetch(`${API_BASE}/api/class-timetable`);
       const data = await response.json();
       if (data.success && data.data && data.data.list) {
          setClassSchedule(data.data.list);
          setClassScheduleDay(data.data.day);
       }
       if (data.fromCache) {
-          fetch('http://localhost:3001/api/class-timetable?refresh=true')
+          fetch(`${API_BASE}/api/class-timetable?refresh=true`)
              .then(res => res.json())
              .then(freshData => {
                  if (freshData.success && freshData.data && freshData.data.list) {
@@ -85,7 +86,7 @@ const HeadTeacher = ({ addNotification }) => {
   const fetchClassExams = async () => {
     setLoadingClassExams(true);
     try {
-      const response = await fetch('http://localhost:3001/api/class-exams', {
+      const response = await fetch(`${API_BASE}/api/class-exams`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
