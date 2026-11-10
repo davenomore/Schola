@@ -28,7 +28,11 @@ app.get('/api/ping-kreta', async (req, res) => {
       elapsedMs: Date.now() - start
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ 
+      error: err.message,
+      cause: err.cause ? (err.cause.message || err.cause.code || String(err.cause)) : null,
+      code: err.code || null
+    });
   }
 });
 
