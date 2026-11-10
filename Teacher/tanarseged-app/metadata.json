@@ -1,0 +1,8 @@
+{
+  "name": "TanárSegéd AI - Matek & Fizika Asszisztens",
+  "description": "Intelligens asszisztens matematika és fizika tanárok számára: óraterv készítés, feladatgenerálás és szemléletes magyarázatok.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

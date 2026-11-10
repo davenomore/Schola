@@ -1,0 +1,80 @@
+# Órarend Import és Aktuális Óra Érzékelés
+
+Az app automatikusan felismeri, hogy éppen melyik osztállyal van a tanár, az importált órarend és az aktuális idő alapján.
+
+## Proposed Changes
+
+### Órarend Komponens
+
+#### [NEW] [Timetable.tsx](file:///Users/vargadavid/Documents/Projektek/Teacher/teacher-assistant-web/src/components/Timetable.tsx)
+
+Teljes órarend kezelő oldal a **Beállítások** tab helyére:
+
+**1. Órarend Import (szöveges beillesztés):**
+- Szöveges bemenet (`textarea`) ahova a tanár beilleszti az órarendjét formázott szövegként
+- Minden sort feldolgozunk: `napszám;óraszám;tantárgy;osztály;terem;csoportkód`
+- Pl.: `2;1;mat;13.c;35;13_ME` = Kedd 1. óra, matek, 13.c, 35-ös terem
+- De **lesz egy manuális táblázatos UI is**: 5 nap × 10 óra grid, ahol kattintható cellák vannak
+
+**2. Manuális táblázat szerkesztő:**
+- 5 oszlop (Hé, Ke, Sz, Cs, Pé) × 10 sor (1-10. óra)
+- Cellákat kattintva popup jelenik meg: tantárgy, osztály, terem mezők
+- Az időintervallumok fix beosztásúak (7:30-8:15, 8:25-9:10, stb.)
+
+**3. Aktuális óra kijelző ("Most éppen"):**
+- Az oldal tetején mindig kijelzi az éppen aktuális órát a rendszeridő alapján
+- Ha van óra → `📍 Most: 10.a — Matematika (4. óra, 225-ös terem)`
+- Ha nincs óra → `☕ Szünet` vagy `🏠 Nincs óra`
+
+**4. Adatstruktúra** (`localStorage: teacher_timetable`):
+```typescript
+interface TimetableEntry {
+  day: number;       // 1=Hé, 2=Ke, 3=Sz, 4=Cs, 5=Pé
+  period: number;    // 1-10
+  subject: string;   // "mat", "fiz"
+  className: string; // "10.a", "9.c"
+  room: string;      // "225"
+  groupCode: string; // "CS1", "MAT1"
+}
+```
+
+**5. Órarend időbeosztás** (fix):
+
+| Óra | Kezdés | Vége |
+|-----|--------|------|
+| 1 | 7:30 | 8:15 |
+| 2 | 8:25 | 9:10 |
+| 3 | 9:20 | 10:05 |
+| 4 | 10:20 | 11:05 |
+| 5 | 11:15 | 12:00 |
+| 6 | 12:20 | 13:05 |
+| 7 | 13:25 | 14:10 |
+| 8 | 14:20 | 15:05 |
+| 9 | 15:10 | 15:55 |
+| 10 | 16:00 | 16:40 |
+
+---
+
+### App Integráció
+
+#### [MODIFY] [App.tsx](file:///Users/vargadavid/Documents/Projektek/Teacher/teacher-assistant-web/src/App.tsx)
+
+- **Beállítás tab** → **Órarend** tab átnevezés (ikon: `Clock` vagy `CalendarDays`)
+- Új route: `/timetable` → `<Timetable />`
+- **Aktuális óra kijelző banner** az app tetejére (minden oldalon látszik, nem csak az Órarend fülön)
+
+#### [NEW] [currentClassHelper.ts](file:///Users/vargadavid/Documents/Projektek/Teacher/teacher-assistant-web/src/utils/currentClassHelper.ts)
+
+Segédfüggvény az aktuális óra és csoport meghatározásához:
+- `getCurrentPeriod(): { period, startTime, endTime } | null`
+- `getCurrentClass(timetable): TimetableEntry | null`
+- Alapja: `new Date()` → nap + perc → melyik óra/szünet
+
+## Verification Plan
+
+### Automated Tests
+- `npx tsc --noEmit` a build ellenőrzéséhez
+
+### Manual Verification
+- Az órarend kijelző a Screenshot alapján helyes adatot mutat-e (kedd 1. óra = 13.c matek)
+- Az aktuális óra helper a rendszeridő alapján jól érzékeli-e az osztályt

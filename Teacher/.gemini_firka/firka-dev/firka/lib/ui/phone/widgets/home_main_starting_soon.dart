@@ -1,0 +1,112 @@
+import 'package:firka/ui/components/firka_card.dart';
+import 'package:firka/l10n/app_localizations.dart';
+import 'package:firka/ui/theme/style.dart';
+import 'package:firka/ui/shared/counter_digit.dart';
+import 'package:flutter/material.dart';
+
+import 'package:kreta_api/kreta_api.dart';
+
+class StartingSoonWidget extends StatelessWidget {
+  final AppLocalizations l10n;
+  final List<Lesson> lessons;
+  final DateTime now;
+
+  const StartingSoonWidget(this.l10n, this.now, this.lessons, {super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    var diff = lessons.first.start.difference(now);
+    var hour = diff.inHours % 60;
+    var min = diff.inMinutes % 60;
+    var sec = diff.inSeconds % 60;
+
+    var hourTxt = hour == 1 ? l10n.starting_hour : l10n.starting_hour_plural;
+    var minTxt = hour == 1 ? l10n.starting_min : l10n.starting_min_plural;
+    var secTxt = hour == 1 ? l10n.starting_sec : l10n.starting_sec_plural;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        FirkaCard(
+          attached: Attach.bottom,
+          left: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    SizedBox(width: 6),
+                    Text(
+                      l10n.starting_soon,
+                      style: appStyle.fonts.H_16px.apply(
+                        color: appStyle.colors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  children: [
+                    CounterDigitWidget(
+                      hour.toString(),
+                      appStyle.fonts.H_16px.apply(
+                        color: appStyle.colors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(width: 2),
+                    Text(
+                      hourTxt,
+                      style: appStyle.fonts.B_16R.apply(
+                        color: appStyle.colors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(width: 4),
+                    CounterDigitWidget(
+                      (min / 10).floor().toString(),
+                      appStyle.fonts.H_16px.apply(
+                        color: appStyle.colors.textPrimary,
+                      ),
+                    ),
+                    CounterDigitWidget(
+                      ((min % 10)).toString(),
+                      appStyle.fonts.H_16px.apply(
+                        color: appStyle.colors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(width: 2),
+                    Text(
+                      minTxt,
+                      style: appStyle.fonts.B_16R.apply(
+                        color: appStyle.colors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(width: 4),
+                    CounterDigitWidget(
+                      (sec / 10).floor().toString(),
+                      appStyle.fonts.H_16px.apply(
+                        color: appStyle.colors.textPrimary,
+                      ),
+                    ),
+                    CounterDigitWidget(
+                      ((sec % 10)).toString(),
+                      appStyle.fonts.H_16px.apply(
+                        color: appStyle.colors.textPrimary,
+                      ),
+                    ),
+                    SizedBox(width: 2),
+                    Text(
+                      secTxt,
+                      style: appStyle.fonts.B_16R.apply(
+                        color: appStyle.colors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+          right: [],
+        ),
+      ],
+    );
+  }
+}

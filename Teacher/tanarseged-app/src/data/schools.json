@@ -1,0 +1,142 @@
+[
+  {
+    "id": 1,
+    "code": "klik035001001",
+    "name": "Budapesti Fazekas Mihály Gyakorló Általános Iskola és Gimnázium",
+    "city": "Budapest",
+    "url": "https://klik035001001.e-kreta.hu"
+  },
+  {
+    "id": 2,
+    "code": "klik035002001",
+    "name": "ELTE Radnóti Miklós Gyakorló Általános Iskola és Gyakorló Gimnázium",
+    "city": "Budapest",
+    "url": "https://klik035002001.e-kreta.hu"
+  },
+  {
+    "id": 3,
+    "code": "klik035003001",
+    "name": "Budapesti Eötvös József Gimnázium",
+    "city": "Budapest",
+    "url": "https://klik035003001.e-kreta.hu"
+  },
+  {
+    "id": 4,
+    "code": "klik035004001",
+    "name": "Budapesti Madách Imre Gimnázium",
+    "city": "Budapest",
+    "url": "https://klik035004001.e-kreta.hu"
+  },
+  {
+    "id": 5,
+    "code": "klik035005001",
+    "name": "Toldy Ferenc Gimnázium",
+    "city": "Budapest",
+    "url": "https://klik035005001.e-kreta.hu"
+  },
+  {
+    "id": 6,
+    "code": "klik035006001",
+    "name": "Veres Pálné Gimnázium",
+    "city": "Budapest",
+    "url": "https://klik035006001.e-kreta.hu"
+  },
+  {
+    "id": 7,
+    "code": "klik038001001",
+    "name": "Debreceni Fazekas Mihály Gimnázium",
+    "city": "Debrecen",
+    "url": "https://klik038001001.e-kreta.hu"
+  },
+  {
+    "id": 8,
+    "code": "klik038002001",
+    "name": "Tóth Árpád Gimnázium",
+    "city": "Debrecen",
+    "url": "https://klik038002001.e-kreta.hu"
+  },
+  {
+    "id": 9,
+    "code": "klik038003001",
+    "name": "Debreceni Egyetem Kossuth Lajos Gyakorló Gimnáziuma és Általános Iskolája",
+    "city": "Debrecen",
+    "url": "https://klik038003001.e-kreta.hu"
+  },
+  {
+    "id": 10,
+    "code": "klik039001001",
+    "name": "Szegedi Radnóti Miklós Kísérleti Gimnázium",
+    "city": "Szeged",
+    "url": "https://klik039001001.e-kreta.hu"
+  },
+  {
+    "id": 11,
+    "code": "klik039002001",
+    "name": "Tömörkény István Gimnázium és Művészeti Szakgimnázium",
+    "city": "Szeged",
+    "url": "https://klik039002001.e-kreta.hu"
+  },
+  {
+    "id": 12,
+    "code": "klik040001001",
+    "name": "Ciszterci Rend Nagy Lajos Gimnáziuma",
+    "city": "Pécs",
+    "url": "https://klik040001001.e-kreta.hu"
+  },
+  {
+    "id": 13,
+    "code": "klik040002001",
+    "name": "Pécsi Tudományegyetem Babits Mihály Gyakorló Gimnáziuma",
+    "city": "Pécs",
+    "url": "https://klik040002001.e-kreta.hu"
+  },
+  {
+    "id": 14,
+    "code": "klik041001001",
+    "name": "Győri Révai Miklós Gimnázium és Kollégium",
+    "city": "Győr",
+    "url": "https://klik041001001.e-kreta.hu"
+  },
+  {
+    "id": 15,
+    "code": "klik042001001",
+    "name": "Földes Ferenc Gimnázium",
+    "city": "Miskolc",
+    "url": "https://klik042001001.e-kreta.hu"
+  },
+  {
+    "id": 16,
+    "code": "klik043001001",
+    "name": "Lovassy László Gimnázium",
+    "city": "Veszprém",
+    "url": "https://klik043001001.e-kreta.hu"
+  },
+  {
+    "id": 17,
+    "code": "klik044001001",
+    "name": "Zrínyi Miklós Gimnázium",
+    "city": "Zalaegerszeg",
+    "url": "https://klik044001001.e-kreta.hu"
+  },
+  {
+    "id": 18,
+    "code": "klik045001001",
+    "name": "Széchenyi István Gimnázium",
+    "city": "Sopron",
+    "url": "https://klik045001001.e-kreta.hu"
+  },
+  {
+    "id": 19,
+    "code": "klik046001001",
+    "name": "Katona József Gimnázium",
+    "city": "Kecskemét",
+    "url": "https://klik046001001.e-kreta.hu"
+  },
+  {
+    "id": 20,
+    "code": "klik047001001",
+    "name": "Krúdy Gyula Gimnázium",
+    "city": "Nyíregyháza",
+    "url": "https://klik047001001.e-kreta.hu"
+  }
+]

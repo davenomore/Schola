@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "TA Kréta Auto-Fill",
+  "version": "1.0",
+  "description": "Automatikus jegybeírás E-Krétába a mobilalkalmazásból beszkennelt adatok alapján.",
+  "permissions": ["activeTab", "scripting", "storage"],
+  "host_permissions": [
+    "*://*.kretanaplo.hu/*",
+    "*://kretanaplo.hu/*",
+    "*://*.e-kreta.hu/*",
+    "*://e-kreta.hu/*",
+    "*://*.kreta.hu/*",
+    "*://kreta.hu/*"
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "TA Kréta Auto-Fill"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.kretanaplo.hu/*",
+        "*://kretanaplo.hu/*",
+        "*://*.e-kreta.hu/*",
+        "*://e-kreta.hu/*",
+        "*://*.kreta.hu/*",
+        "*://kreta.hu/*"
+      ],
+      "all_frames": true,
+      "js": ["content.js"]
+    }
+  ]
+}

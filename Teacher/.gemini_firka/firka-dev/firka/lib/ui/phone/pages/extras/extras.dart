@@ -1,0 +1,293 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:majesticons_flutter/majesticons_flutter.dart';
+
+import 'package:firka/app/app_state.dart';
+import 'package:firka/core/bloc/theme_cubit.dart';
+import 'package:firka/core/settings.dart';
+import 'package:firka/data/models/app_settings_model.dart';
+import 'package:firka/ui/components/firka_shadow.dart';
+import 'package:firka/ui/shared/firka_icon.dart';
+import 'package:firka/ui/theme/style.dart';
+import 'package:go_router/go_router.dart';
+
+void showExtrasBottomSheet(BuildContext context, AppInitialization data) {
+  Widget Function(double) debugBtn = (_) => const SizedBox();
+
+  logger.finest("showExtrasBottomSheet() developer mode: ${isDeveloper()}");
+
+  if (isDeveloper()) {
+    debugBtn = (double itemWidth) => GestureDetector(
+      // Fejlesztői menü
+      onTap: () {
+        context.pop();
+        context.push('/debug');
+      },
+      child: SizedBox(
+        height: 60,
+        width: itemWidth,
+        child: FirkaShadow(
+          shadow: true,
+          child: Card(
+            color: appStyle.colors.card,
+            shadowColor: context.watch<ThemeCubit>().state.isLightMode
+                ? null
+                : Colors.transparent,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: Row(
+                  children: [
+                    FirkaIconWidget(
+                      FirkaIconType.majesticons,
+                      Majesticon.bug2Solid,
+                      size: 22.0,
+                      color: appStyle.colors.accent,
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      data.l10n.debug_screen,
+                      textAlign: TextAlign.right,
+                      style: appStyle.fonts.B_16R.apply(
+                        color: appStyle.colors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  var debugCounter = 0;
+
+  showModalBottomSheet(
+    context: context,
+    elevation: 100,
+    isScrollControlled: true,
+    enableDrag: true,
+    backgroundColor: Colors.transparent,
+    barrierColor: appStyle.colors.a15p,
+    constraints: BoxConstraints(
+      maxHeight: MediaQuery.of(context).size.height * 0.3,
+    ),
+    builder: (BuildContext context) {
+      return Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              behavior: HitTestBehavior.opaque,
+              child: Container(color: Colors.transparent),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              decoration: BoxDecoration(
+                color: appStyle.colors.background,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Stack(
+                  children: [
+                    Column(
+                      children: [
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            data.l10n.other,
+                            style: appStyle.fonts.H_H2.apply(
+                              color: appStyle.colors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        LayoutBuilder(
+                          builder: (context, constraints) {
+                            final itemWidth = (constraints.maxWidth - 8) / 2;
+                            return Wrap(
+                              spacing: 2,
+                              runSpacing: 2,
+                              children: [
+                                debugBtn(itemWidth),
+                                GestureDetector(
+                                  // Fiókod
+                                  onTap: () {
+                                    context.pop();
+                                    context.push(
+                                      '/settings',
+                                      extra: data.settings.items.group(
+                                        "profile_settings",
+                                      ),
+                                    );
+                                  },
+                                  child: SizedBox(
+                                    height: 60,
+                                    width: itemWidth,
+                                    child: FirkaShadow(
+                                      shadow: true,
+                                      child: Card(
+                                        color: appStyle.colors.card,
+                                        shadowColor:
+                                            context
+                                                .watch<ThemeCubit>()
+                                                .state
+                                                .isLightMode
+                                            ? null
+                                            : Colors.transparent,
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12.0,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                FirkaIconWidget(
+                                                  FirkaIconType.majesticons,
+                                                  Majesticon.userSolid,
+                                                  size: 22.0,
+                                                  color: appStyle.colors.accent,
+                                                ),
+                                                SizedBox(width: 4),
+                                                Text(
+                                                  data.l10n.s_your_account,
+                                                  textAlign: TextAlign.right,
+                                                  style: appStyle.fonts.B_16R
+                                                      .apply(
+                                                        color: appStyle
+                                                            .colors
+                                                            .textPrimary,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                GestureDetector(
+                                  // Beállítás
+                                  onTap: () {
+                                    context.pop();
+                                    context.push('/settings');
+                                  },
+                                  child: SizedBox(
+                                    height: 60,
+                                    width: itemWidth,
+                                    child: FirkaShadow(
+                                      shadow: true,
+                                      child: Card(
+                                        color: appStyle.colors.card,
+                                        shadowColor:
+                                            context
+                                                .watch<ThemeCubit>()
+                                                .state
+                                                .isLightMode
+                                            ? null
+                                            : Colors.transparent,
+                                        child: Align(
+                                          alignment: Alignment.centerLeft,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 12.0,
+                                            ),
+                                            child: Row(
+                                              children: [
+                                                FirkaIconWidget(
+                                                  FirkaIconType.majesticons,
+                                                  Majesticon.settingsCogSolid,
+                                                  size: 22.0,
+                                                  color: appStyle.colors.accent,
+                                                ),
+                                                SizedBox(width: 4),
+                                                Text(
+                                                  data.l10n.settings_screen,
+                                                  textAlign: TextAlign.right,
+                                                  style: appStyle.fonts.B_16R
+                                                      .apply(
+                                                        color: appStyle
+                                                            .colors
+                                                            .textPrimary,
+                                                      ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Ide jön a többi gomb majd
+                              ],
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          SizedBox(),
+                          GestureDetector(
+                            child: Text(
+                              "v${data.packageInfo.version} ${isBeta ? "beta" : ""}",
+                              style: appStyle.fonts.B_16R.apply(
+                                color: appStyle.colors.textTertiary,
+                              ),
+                            ),
+                            onTap: () async {
+                              if (isDebug()) return;
+                              if (debugCounter == 10) {
+                                final navigator = Navigator.of(context);
+                                final router = GoRouter.of(context);
+                                data.settings
+                                    .group("settings")
+                                    .setBoolean(
+                                      "developer_enabled",
+                                      !data.settings
+                                          .group("settings")
+                                          .boolean("developer_enabled"),
+                                    );
+
+                                await data.isar.writeTxn(() async {
+                                  await data.settings
+                                      .group("settings")["developer_enabled"]!
+                                      .save(data.isar.appSettingsModels);
+                                });
+
+                                await data.settings
+                                    .group("settings")["developer_enabled"]!
+                                    .postUpdate();
+
+                                navigator.pop();
+                                router.go('/home');
+                              } else if (debugCounter < 10) {
+                                debugCounter++;
+                              }
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    },
+  );
+}

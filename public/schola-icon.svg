@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <!-- Background: Deep Obsidian Black -->
+  <rect width="128" height="128" rx="28" fill="#0A0A0C"/>
+  <rect x="1" y="1" width="126" height="126" rx="27" stroke="rgba(255, 255, 255, 0.12)" stroke-width="1.5"/>
+
+  <!-- Subtle glow for red accent -->
+  <circle cx="90" cy="36" r="12" fill="#E11D48" opacity="0.25" filter="blur(6px)"/>
+
+  <!-- Elegant Architectural Monogram S (Pure White) -->
+  <path 
+    d="M80 44 C80 34.5 71.5 28 58 28 C43 28 34 37 34 48 C34 61 46 65 64 69 C79 72.5 86 78 86 89 C86 101.5 73.5 108 56 108 C40 108 32 99.5 32 89" 
+    stroke="#FFFFFF" 
+    stroke-width="11" 
+    stroke-linecap="round" 
+    stroke-linejoin="round"
+  />
+
+  <!-- Iconic Crimson Red Dot (Academic Excellence / Teacher's Mark) -->
+  <circle cx="90" cy="36" r="6.5" fill="#E11D48"/>
+</svg>

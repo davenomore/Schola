@@ -1,0 +1,47 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies and build outputs
+node_modules/
+dist/
+dist-ssr/
+build/
+.metadata
+**/.metadata
+.gradle/
+**/.gradle/
+
+# Environment and sensitive keys
+.env
+.env.*
+!.env.example
+*.local
+
+# Sensitive runtime data / debug dumps
+server/kreta_cache.json
+server/kreta-debug.html
+server/kreta-orarend-debug.html
+server/*.png
+*.png
+tanulok_page.html
+login_page.png
+*.keystore
+*.jks
+
+# Editor & OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+Thumbs.db

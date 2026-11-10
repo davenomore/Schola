@@ -1,0 +1,414 @@
+import 'dart:async';
+
+import 'package:firka/api/client/kreta_stream.dart';
+import 'package:kreta_api/kreta_api.dart';
+import 'package:firka/core/extensions.dart';
+import 'package:firka/ui/components/common_bottom_sheets.dart';
+import 'package:firka/ui/phone/widgets/home_main_starting_soon.dart';
+import 'package:firka/ui/phone/widgets/homework.dart';
+import 'package:firka/ui/phone/widgets/info_board_item.dart';
+import 'package:firka/ui/phone/widgets/lesson_small.dart';
+import 'package:firka/ui/shared/delayed_spinner.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
+import 'package:majesticons_flutter/majesticons_flutter.dart';
+
+import 'package:firka/core/debug_helper.dart';
+import 'package:firka/core/state/firka_state.dart';
+import 'package:firka/ui/components/firka_card.dart';
+import 'package:firka/ui/components/grade.dart';
+import 'package:firka/app/app_state.dart';
+import 'package:firka/core/bloc/home_refresh_cubit.dart';
+import 'package:firka/ui/theme/style.dart';
+import 'package:firka/ui/shared/firka_icon.dart';
+import '../../widgets/home_main_welcome.dart';
+import '../../widgets/lesson_big.dart';
+
+class HomeMainScreen extends StatefulWidget {
+  final AppInitialization data;
+
+  const HomeMainScreen(this.data, {super.key});
+
+  @override
+  State<HomeMainScreen> createState() => _HomeMainScreen();
+}
+
+class _HomeMainScreen extends FirkaState<HomeMainScreen> {
+  _HomeMainScreen();
+
+  DateTime now = timeNow();
+  List<Lesson>? lessons;
+  List<NoticeBoardItem>? noticeBoard;
+  List<InfoBoardItem>? infoBoard;
+  List<Test>? tests;
+  List<Grade>? grades;
+  List<Homework>? homework;
+  Student? student;
+  Timer? timer;
+
+  void _onRefreshRequested(BuildContext context) async {
+    final cubit = context.read<HomeRefreshCubit>();
+    await fetchData(cacheOnly: false);
+    if (mounted) {
+      cubit.onRefreshComplete();
+    }
+  }
+
+  Future<void> fetchData({bool cacheOnly = false}) async {
+    final midnight = now.getMidnight();
+
+    var lessonsFetched = 0;
+    var noticeBoardFetched = 0;
+    var infoBoardFetched = 0;
+    var studentFetched = 0;
+    var testsFetched = 0;
+    var gradesFetched = 0;
+    var homeworkFetched = 0;
+
+    widget.data.client
+        .getTimeTableStream(
+          midnight,
+          midnight.add(Duration(hours: 23, minutes: 59)),
+          cacheOnly: cacheOnly,
+        )
+        .forEach((lessons) {
+          lessonsFetched++;
+
+          if (mounted) {
+            setState(() {
+              this.lessons = lessons.response;
+            });
+          }
+        });
+
+    widget.data.client.getNoticeBoardStream(cacheOnly: cacheOnly).forEach((
+      items,
+    ) {
+      noticeBoardFetched++;
+
+      if (mounted) {
+        setState(() {
+          noticeBoard = items.response;
+        });
+      }
+    });
+
+    widget.data.client.getInfoBoardStream(cacheOnly: cacheOnly).forEach((
+      items,
+    ) {
+      infoBoardFetched++;
+
+      if (mounted) {
+        setState(() {
+          infoBoard = items.response;
+        });
+      }
+    });
+
+    widget.data.client.getStudentStream(cacheOnly: cacheOnly).forEach((
+      student,
+    ) {
+      studentFetched++;
+
+      if (mounted) {
+        setState(() {
+          this.student = student.response;
+        });
+      }
+    });
+
+    widget.data.client.getTestsStream(cacheOnly: cacheOnly).forEach((tests) {
+      testsFetched++;
+
+      if (mounted) {
+        setState(() {
+          this.tests = tests.response;
+        });
+      }
+    });
+
+    widget.data.client.getGradesStream(cacheOnly: cacheOnly).forEach((grades) {
+      gradesFetched++;
+
+      if (mounted) {
+        setState(() {
+          this.grades = grades.response;
+        });
+      }
+    });
+
+    widget.data.client.getHomeworkStream(cacheOnly: cacheOnly).forEach((
+      homework,
+    ) {
+      homeworkFetched++;
+
+      if (mounted) {
+        setState(() {
+          this.homework = homework.response;
+        });
+      }
+    });
+
+    final r = cacheOnly ? 1 : 2;
+    final startTime = DateTime.now();
+    const maxWaitTime = Duration(seconds: 30);
+
+    while (lessonsFetched < r ||
+        noticeBoardFetched < r ||
+        infoBoardFetched < r ||
+        studentFetched < r ||
+        testsFetched < r ||
+        gradesFetched < r ||
+        homeworkFetched < r) {
+      if (DateTime.now().difference(startTime) > maxWaitTime) {
+        debugPrint('[HomeMain] Data fetch timed out after 30s');
+        break;
+      }
+      await Future.delayed(Duration(milliseconds: 50));
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    now = timeNow();
+    if (!mounted) return;
+
+    (() async {
+      await fetchData();
+    })();
+
+    timer = Timer.periodic(Duration(seconds: 1), (timer) async {
+      if (!mounted) return;
+      setState(() {
+        now = timeNow();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+    timer?.cancel();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocListener<HomeRefreshCubit, HomeRefreshState>(
+      listenWhen: (previous, current) =>
+          current.refreshTrigger != previous.refreshTrigger,
+      listener: (context, state) {
+        _onRefreshRequested(context);
+      },
+      child: _buildContent(context),
+    );
+  }
+
+  Widget _buildContent(BuildContext context) {
+    Widget welcomeWidget = SizedBox();
+    Widget nextClass = SizedBox();
+    Widget? nextTest;
+    bool lessonActive = false;
+
+    if (lessons != null && lessons!.isNotEmpty) {
+      if (now.isBefore(lessons!.first.start)) {
+        welcomeWidget = StartingSoonWidget(widget.data.l10n, now, lessons!);
+      } else {
+        var currentLesson = lessons!.firstWhereOrNull(
+          (lesson) => now.isAfter(lesson.start) && now.isBefore(lesson.end),
+        );
+        var prevLesson = lessons!.getPrevLesson(now);
+        var nextLesson = lessons!.getNextLesson(now);
+        int? lessonIndex;
+
+        if (currentLesson != null) {
+          lessonIndex = lessons!.getLessonNo(currentLesson);
+          lessonActive = true;
+        }
+
+        welcomeWidget = LessonBigWidget(
+          widget.data.l10n,
+          now,
+          lessonIndex,
+          currentLesson,
+          prevLesson,
+          nextLesson,
+          lessons!,
+          tests ?? [],
+        );
+      }
+    }
+    if (lessons != null && lessons!.isNotEmpty) {
+      var nextLesson = lessons!.getNextLesson(now);
+      if (nextLesson != null) {
+        nextClass = LessonSmallWidget(
+          widget.data.l10n,
+          nextLesson,
+          lessonActive,
+        );
+
+        if (tests != null) {
+          final testsOnDate = tests!
+              .where(
+                (test) =>
+                    test.date.isAfter(
+                      nextLesson.start.getMidnight().subtract(
+                        Duration(seconds: 1),
+                      ),
+                    ) &&
+                    test.date.isBefore(
+                      nextLesson.end.getMidnight().add(
+                        Duration(hours: 23, minutes: 59),
+                      ),
+                    ) &&
+                    test.subject.uid == nextLesson.subject?.uid,
+              )
+              .toList();
+
+          if (testsOnDate.isNotEmpty) {
+            final test = testsOnDate.first;
+
+            nextTest = FirkaCard(
+              left: [
+                FirkaIconWidget(
+                  FirkaIconType.majesticons,
+                  Majesticon.editPen4Solid,
+                  color: appStyle.colors.accent,
+                ),
+                SizedBox(width: 6),
+                Text(
+                  test.theme,
+                  style: appStyle.fonts.B_16SB.apply(
+                    color: appStyle.colors.textSecondary,
+                  ),
+                ),
+              ],
+              right: [
+                Text(
+                  test.method.description ?? "N/A",
+                  style: appStyle.fonts.B_16R.apply(
+                    color: appStyle.colors.textTertiary,
+                  ),
+                ),
+              ],
+            );
+          }
+        }
+      }
+    }
+
+    if (student != null && lessons != null) {
+      final infoItems = infoBoard ?? [];
+      final gradeItems = grades ?? [];
+      final homeworkItems = homework ?? [];
+      final noticeBoardWidgets = <(Widget, DateTime)>[];
+
+      for (final item in infoItems) {
+        noticeBoardWidgets.add((
+          GestureDetector(
+            child: InfoBoardItemWidget(item),
+            onTap: () {
+              context.push('/message', extra: item);
+            },
+          ),
+          item.date,
+        ));
+      }
+
+      for (final grade in gradeItems) {
+        noticeBoardWidgets.add((
+          GestureDetector(
+            child: FirkaCard(
+              left: [
+                Row(
+                  children: [
+                    GradeWidget(grade),
+                    SizedBox(width: 8),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: MediaQuery.of(context).size.width / 1.45,
+                          child: Text(
+                            (grade.topic ?? grade.type.description!)
+                                .firstUpper(),
+                            style: appStyle.fonts.B_16SB.apply(
+                              color: appStyle.colors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        grade.mode?.description != null
+                            ? SizedBox(
+                                width: MediaQuery.of(context).size.width / 1.45,
+                                child: Text(
+                                  grade.mode!.description!.firstUpper(),
+                                  style: appStyle.fonts.B_16R.apply(
+                                    color: appStyle.colors.textSecondary,
+                                  ),
+                                ),
+                              )
+                            : SizedBox(),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            onTap: () {
+              showGradeBottomSheet(context, widget.data, grade);
+            },
+          ),
+          grade.recordDate,
+        ));
+      }
+
+      for (final entry in homeworkItems) {
+        noticeBoardWidgets.add((
+          HomeworkWidget(widget.data, entry),
+          entry.creationDate,
+        ));
+      }
+
+      noticeBoardWidgets.sort(
+        (item1, item2) => item2.$2.difference(item1.$2).inMilliseconds,
+      );
+
+      return Padding(
+        padding: const EdgeInsets.only(left: 20.0, top: 24.0, right: 20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            WelcomeWidget(widget.data.l10n, now, student!, lessons!),
+            SizedBox(height: 48),
+            welcomeWidget,
+            lessonActive ? SizedBox(height: 5) : SizedBox(height: 0),
+            nextClass,
+            nextTest != null ? SizedBox(height: 12) : SizedBox(height: 0),
+            nextTest ?? SizedBox(),
+            nextTest != null ? SizedBox(height: 12) : SizedBox(height: 0),
+            Expanded(
+              child: ListView(
+                children: noticeBoardWidgets.map((e) => e.$1).toList(),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Scaffold(
+        backgroundColor: appStyle.colors.background,
+        body: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [DelayedSpinnerWidget()],
+            ),
+          ],
+        ),
+      );
+    }
+  }
+}

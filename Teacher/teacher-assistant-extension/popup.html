@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <title>TA Kréta Auto-Fill</title>
+  <style>
+    body { width: 340px; font-family: 'Segoe UI', system-ui, sans-serif; background: #161b22; color: #e6edf3; margin: 0; padding: 16px; border-radius: 8px; }
+    h2 { margin: 0 0 16px 0; color: #2f81f7; font-size: 18px; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+    .status { padding: 8px 12px; background: rgba(35, 134, 54, 0.1); border: 1px solid #238636; border-radius: 8px; color: #3fb950; font-weight: 500; font-size: 13px; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .status.offline { background: rgba(248, 81, 73, 0.1); border-color: #f85149; color: #f85149; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 6px currentColor; }
+    
+    .fetch-btn { width: 100%; padding: 12px; background: #238636; color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; margin-bottom: 12px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+    .fetch-btn:hover { background: #2ea043; }
+    
+    .scrape-btn { width: 100%; padding: 12px; background: linear-gradient(135deg, #d29922 0%, #bb8009 100%); color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer; transition: 0.2s; margin-bottom: 8px; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 12px rgba(210, 153, 34, 0.3); }
+    .scrape-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .scrape-btn:disabled { background: #30363d; color: #8b949e; cursor: not-allowed; box-shadow: none; transform: none; }
+    
+    button#injectBtn { width: 100%; padding: 14px; background: linear-gradient(135deg, #2f81f7 0%, #1f6feb 100%); color: white; border: none; border-radius: 6px; font-weight: 600; font-size: 14px; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 12px rgba(47, 129, 247, 0.3); }
+    button#injectBtn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    button#injectBtn:disabled { background: #30363d; color: #8b949e; cursor: not-allowed; box-shadow: none; transform: none; }
+    
+    .student-preview { font-size: 13px; color: #8b949e; margin-top: 16px; border-top: 1px solid #30363d; padding-top: 12px; line-height: 1.6; }
+    .divider { border: none; border-top: 1px solid #30363d; margin: 16px 0; }
+    .scrape-result { font-size: 13px; color: #8b949e; line-height: 1.6; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <h2>TA Kréta Auto-Fill</h2>
+  
+  <div id="connectionStatus" class="status offline">
+    <div class="dot"></div> Kréta oldal nem található
+  </div>
+
+  <!-- BEÁLLÍTÁSOK SZEKCIÓ (Fiók kapcsolás) -->
+  <div style="font-size: 13px; margin-bottom: 8px; color: #a371f7; font-weight: 500;">
+    🔑 Fiók Kapcsolása
+  </div>
+  <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+    <input type="text" id="uidInput" placeholder="4 jegyű kód (pl. A1B2)" maxlength="4" style="flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #30363d; background: #0d1117; color: white; outline: none; font-size: 13px; font-weight: bold; text-align: center; text-transform: uppercase;" />
+    <button id="saveUidBtn" style="padding: 10px 14px; background: #a371f7; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600;">Párosítás</button>
+  </div>
+
+  <!-- SCRAPER SZEKCIÓ -->
+  <div style="font-size: 13px; margin-bottom: 8px; color: #d29922; font-weight: 500;">
+    📋 Névsor Szinkronizáció
+  </div>
+  
+  <button id="scrapeBtn" class="scrape-btn" disabled>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    Névsor Leolvasása a Krétából
+  </button>
+  
+  <div class="scrape-result" id="scrapeResult"></div>
+
+  <hr class="divider">
+
+  <!-- JEGYBEÍRÁS SZEKCIÓ (eredeti) -->
+  <div style="font-size: 13px; margin-bottom: 8px; color: #c9d1d9; font-weight: 500;">
+    Firebase Felhő Szinkronizáció
+  </div>
+  
+  <button id="fetchCloudBtn" class="fetch-btn">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m8 17 4-4 4 4"/></svg>
+    Adatok letöltése a Felhőből
+  </button>
+  
+  <button id="injectBtn" disabled>Jegyek Automatikus Beírása</button>
+
+  <div class="student-preview" id="previewArea">
+    Várom a felhős szinkronizálást...
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>
+
