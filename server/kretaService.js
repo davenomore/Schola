@@ -412,6 +412,10 @@ class KretaService {
     }
 
     if (!this.page) {
+      if (process.env.RENDER) {
+        // Éles környezetben a szerver újraindulása után nincs munkamenet: új bejelentkezés kell.
+        throw new Error('Nincs aktív Kréta munkamenet, jelentkezz be újra!');
+      }
       console.log('[Fejlesztői mód] Nincs valós böngésző munkamenet...');
       return { data: { day: activeDay, list: cache[cacheKey]?.[dayIndexToUse] || [] }, fromCache: true };
     }

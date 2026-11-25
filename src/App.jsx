@@ -619,6 +619,7 @@ function MainApp() {
         if (
           err.message &&
           (err.message.toLowerCase().includes('closed') ||
+            err.message.toLowerCase().includes('munkamenet') ||
             err.message.toLowerCase().includes('null') ||
             err.message.toLowerCase().includes('undefined'))
         ) {
