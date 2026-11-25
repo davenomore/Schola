@@ -1325,6 +1325,11 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`[Backend] Kréta API háttérszolgáltatás elindult a ${PORT}-es porton`);
-});
+// Vercelen az app exportálva van (a platform kezeli a figyelést), helyben/Renderen közvetlenül indul.
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`[Backend] Kréta API háttérszolgáltatás elindult a ${PORT}-es porton`);
+  });
+}
+
+module.exports = app;
