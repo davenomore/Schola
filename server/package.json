@@ -12,6 +12,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@sparticuz/chromium": "^148.0.0",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "playwright": "^1.63.0"

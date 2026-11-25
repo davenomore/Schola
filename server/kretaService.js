@@ -142,6 +142,14 @@ class KretaService {
         launchOptions.executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
       }
 
+      if (process.env.VERCEL) {
+        // Vercel (serverless): a csomagolt, kis méretű Chromium használata
+        const sparticuz = require('@sparticuz/chromium');
+        launchOptions.executablePath = await sparticuz.executablePath();
+        launchOptions.args = sparticuz.args;
+        launchOptions.headless = true;
+      }
+
       this.browser = await chromium.launch(launchOptions); 
 
       const contextOptions = {
