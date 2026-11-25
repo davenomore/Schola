@@ -18,7 +18,7 @@ const generateExamId = (exam) => {
   return `${dateClean}${lessonClean}_${classClean}_${subjectClean}_${topicClean}`;
 };
 
-const Exams = ({ addNotification, vacationDates: propVacations }) => {
+const Exams = ({ addNotification, vacationDates: propVacations, refreshTrigger }) => {
   const [exams, setExams] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [syncStatus, setSyncStatus] = useState('');
@@ -53,53 +53,60 @@ const Exams = ({ addNotification, vacationDates: propVacations }) => {
       const response = await fetch(`${API_BASE}/api/exams`);
       const data = await response.json();
       
-      if (data.success && Array.isArray(data.data)) {
+      if (data.success) {
         setSyncStatus('Feldolgozás...');
         setExams(prev => {
-          const newExams = { ...prev };
-          data.data.forEach(fetchedExam => {
-            const uniqueId = generateExamId(fetchedExam);
-            const legacyId = `${fetchedExam.date}_${fetchedExam.className}_${fetchedExam.subject}`.replace(/\s+/g, '_');
+          // Ha helyben még üres a tábla (pl. új eszköz / IP cím), és a szerveren van mentett táblaállapot
+          let newExams = { ...prev };
+          if (Object.keys(newExams).length === 0 && data.boardState && typeof data.boardState === 'object') {
+            newExams = { ...data.boardState };
+          }
 
-            // 1. Ha már létezik ezzel az új, részletes egyedi azonosítóval
-            if (newExams[uniqueId]) {
-              newExams[uniqueId] = {
-                ...fetchedExam,
-                id: uniqueId,
-                status: newExams[uniqueId].status || 'planned'
-              };
-              return;
-            }
+          if (Array.isArray(data.data)) {
+            data.data.forEach(fetchedExam => {
+              const uniqueId = generateExamId(fetchedExam);
+              const legacyId = `${fetchedExam.date}_${fetchedExam.className}_${fetchedExam.subject}`.replace(/\s+/g, '_');
 
-            // 2. Régi kulcs migrációja: ha a legacyId létezik a korábbi állapotban
-            let inheritedStatus = 'planned';
-            if (newExams[legacyId]) {
-              if (!newExams[legacyId].topic || newExams[legacyId].topic === fetchedExam.topic) {
-                inheritedStatus = newExams[legacyId].status || 'planned';
-                delete newExams[legacyId]; // Töröljük a régi hiányos kulcsot
+              // 1. Ha már létezik ezzel az új, részletes egyedi azonosítóval
+              if (newExams[uniqueId]) {
+                newExams[uniqueId] = {
+                  ...fetchedExam,
+                  id: uniqueId,
+                  status: newExams[uniqueId].status || 'planned'
+                };
+                return;
               }
-            }
 
-            newExams[uniqueId] = {
-              id: uniqueId,
-              date: fetchedExam.date,
-              dayOfWeek: fetchedExam.dayOfWeek,
-              lessonNumber: fetchedExam.lessonNumber,
-              subject: fetchedExam.subject,
-              className: fetchedExam.className,
-              type: fetchedExam.type,
-              topic: fetchedExam.topic,
-              status: inheritedStatus
-            };
-          });
+              // 2. Régi kulcs migrációja: ha a legacyId létezik a korábbi állapotban
+              let inheritedStatus = 'planned';
+              if (newExams[legacyId]) {
+                if (!newExams[legacyId].topic || newExams[legacyId].topic === fetchedExam.topic) {
+                  inheritedStatus = newExams[legacyId].status || 'planned';
+                  delete newExams[legacyId]; // Töröljük a régi hiányos kulcsot
+                }
+              }
 
-          // 3. Biztonsági tisztítás: ha bármelyik legacyId még fennmaradt, takarítsuk el
-          data.data.forEach(fetchedExam => {
-            const legacyId = `${fetchedExam.date}_${fetchedExam.className}_${fetchedExam.subject}`.replace(/\s+/g, '_');
-            if (newExams[legacyId]) {
-              delete newExams[legacyId];
-            }
-          });
+              newExams[uniqueId] = {
+                id: uniqueId,
+                date: fetchedExam.date,
+                dayOfWeek: fetchedExam.dayOfWeek,
+                lessonNumber: fetchedExam.lessonNumber,
+                subject: fetchedExam.subject,
+                className: fetchedExam.className,
+                type: fetchedExam.type,
+                topic: fetchedExam.topic,
+                status: inheritedStatus
+              };
+            });
+
+            // 3. Biztonsági tisztítás: ha bármelyik legacyId még fennmaradt, takarítsuk el
+            data.data.forEach(fetchedExam => {
+              const legacyId = `${fetchedExam.date}_${fetchedExam.className}_${fetchedExam.subject}`.replace(/\s+/g, '_');
+              if (newExams[legacyId]) {
+                delete newExams[legacyId];
+              }
+            });
+          }
 
           return newExams;
         });
@@ -149,14 +156,31 @@ const Exams = ({ addNotification, vacationDates: propVacations }) => {
       }
     }
 
-    // Automatikus szinkronizáció indítása
+    // Automatikus lekérés megnyitáskor
     fetchKreta();
   }, []);
 
-  // Save to local storage whenever exams change
+  // Automatikus frissítés, ha a felhasználó rákattint a Dolgozat Radar menüpontra
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (refreshTrigger) {
+      fetchKreta();
+    }
+  }, [refreshTrigger]);
+
+  // Save to local storage whenever exams change and sync to server
   useEffect(() => {
     if (Object.keys(exams).length > 0) {
       localStorage.setItem('ekreta_exams', JSON.stringify(exams));
+      fetch(`${API_BASE}/api/exams/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ exams })
+      }).catch(() => {});
     }
   }, [exams]);
 
@@ -264,10 +288,11 @@ const Exams = ({ addNotification, vacationDates: propVacations }) => {
   // Típus alapján szín
   const getTypeColor = (type) => {
     if (!type) return '#6b7280';
-    if (type.toLowerCase().includes('témazáró')) return '#ef4444';
-    if (type.toLowerCase().includes('röpdolgozat')) return '#f59e0b';
-    if (type.toLowerCase().includes('beszámoló')) return '#3b82f6';
-    if (type.toLowerCase().includes('gyakorlati')) return '#10b981';
+    const t = type.toLowerCase();
+    if (t.includes('témazáró')) return '#ef4444';
+    if (t.includes('röpdolgozat')) return '#f59e0b';
+    if (t.includes('beszámoló')) return '#3b82f6';
+    if (t.includes('gyakorlati')) return '#10b981';
     return '#8b5cf6';
   };
 
@@ -285,19 +310,22 @@ const Exams = ({ addNotification, vacationDates: propVacations }) => {
         </div>
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {syncStatus && <span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{syncStatus}</span>}
-          <button 
-            onClick={() => fetchKreta()} 
-            disabled={isLoading}
-            className="btn-outline"
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', fontSize: '13px' }}
-            title="Dolgozatok frissítése a Krétából"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ animation: isLoading ? 'spin 1s linear infinite' : 'none' }}>
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-            </svg>
-            {isLoading ? 'Szinkronizálás...' : 'Szinkronizálás'}
-          </button>
+          {(isLoading || syncStatus) && (
+            <span style={{ 
+              color: 'var(--text-secondary)', 
+              fontSize: '13px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '6px' 
+            }}>
+              {isLoading && (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
+                </svg>
+              )}
+              {syncStatus || 'Dolgozatok lekérése...'}
+            </span>
+          )}
           <button 
             onClick={() => setShowManualForm(true)}
             className="btn-primary"
@@ -353,10 +381,12 @@ const Exams = ({ addNotification, vacationDates: propVacations }) => {
                       padding: '12px', 
                       borderRadius: '4px', 
                       border: '1px solid var(--panel-border)',
+                      borderLeft: `4px solid ${getTypeColor(exam.type)}`,
+                      boxShadow: 'var(--card-shadow)',
                       cursor: 'grab',
                       position: 'relative'
                     }}
-                    className="group"
+                    className="group exam-card"
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', alignItems: 'center' }}>
                       <span style={{ fontSize: '11px', fontWeight: 'bold', padding: '2px 6px', borderRadius: '4px', background: `${getTypeColor(exam.type)}20`, color: getTypeColor(exam.type) }}>
@@ -431,7 +461,6 @@ const Exams = ({ addNotification, vacationDates: propVacations }) => {
                         </div>
                       );
                     })()}
-                    {/* Delete button volt itt */}
                   </div>
                 ))}
                 

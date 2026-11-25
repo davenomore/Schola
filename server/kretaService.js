@@ -4,11 +4,14 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 const CACHE_FILE = path.join(__dirname, 'kreta_cache.json');
+const SESSION_FILE = path.join(__dirname, 'kreta_session.json');
 
 class KretaService {
   constructor() {
     this.browser = null;
+    this.context = null;
     this.page = null;
+    this.schoolId = 'bmszc-neumann';
     this.lock = Promise.resolve();
   }
 
@@ -43,46 +46,155 @@ class KretaService {
     } catch (e) { console.error('Cache save error', e); }
   }
 
+  async saveSession() {
+    try {
+      if (this.context) {
+        await this.context.storageState({ path: SESSION_FILE });
+        console.log('[Kréta] Munkamenet (sütik) sikeresen elmentve a lemezre.');
+      }
+    } catch (e) {
+      console.warn('[Kréta] Nem sikerült elmenteni a munkamenetet:', e.message);
+    }
+  }
+
+  clearSession() {
+    try {
+      if (fs.existsSync(SESSION_FILE)) {
+        fs.unlinkSync(SESSION_FILE);
+        console.log('[Kréta] Elmentett munkamenet törölve.');
+      }
+    } catch (e) {
+      console.warn('[Kréta] Hiba a munkamenet törlésekor:', e.message);
+    }
+  }
+
+  async ensureAuthenticated() {
+    if (this.page && this.browser && this.browser.isConnected()) {
+      return true;
+    }
+    return await this.isSessionValid();
+  }
+
+  _extractStudentsFromCache(cache) {
+    if (!cache) return [];
+    if (cache.students && cache.students.length > 0) return cache.students;
+    if (cache.groups && cache.groups.length > 0) {
+      const ofoGroup = cache.groups.find(g => 
+        (g.className && (g.className.toLowerCase().includes('11.a') || g.className.toLowerCase().includes('11a'))) ||
+        (g.id && (g.id.toLowerCase().includes('11.a') || g.id.toLowerCase().includes('11a')))
+      ) || cache.groups.reduce((max, g) => (!max || (g.students && g.students.length > (max.students ? max.students.length : 0))) ? g : max, null);
+
+      if (ofoGroup && ofoGroup.students && ofoGroup.students.length > 0) {
+        const uniqueNames = Array.from(new Set(ofoGroup.students));
+        return uniqueNames.map((name, index) => ({
+          id: `student_${index}`,
+          name: name,
+          rawData: [`${index + 1}`, name, '', '', '', '', '', ofoGroup.className || '11.a', '']
+        }));
+      }
+    }
+    return [];
+  }
+
+  async isSessionValid() {
+    if (!fs.existsSync(SESSION_FILE)) return false;
+    try {
+      await this.initBrowser();
+      console.log('[Kréta] Elmentett munkamenet gyors érvényesítése...');
+      const targetUrl = `https://${this.schoolId || 'bmszc-neumann'}.e-kreta.hu/Orarend/TanariOrarend`;
+      await this.page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 10000 });
+      const currentUrl = this.page.url().toLowerCase();
+      if (!currentUrl.includes('account/login') && !currentUrl.includes('idp.e-kreta.hu')) {
+        console.log('[Kréta] A korábbi munkamenet aktív és érvényes! Nem szükséges újra bejelentkezni.');
+        return true;
+      }
+      console.log('[Kréta] A munkamenet lejárt, új bejelentkezés szükséges.');
+    } catch (e) {
+      console.log('[Kréta] Munkamenet ellenőrzés figyelmeztetés:', e.message);
+    }
+    return false;
+  }
+
   async initBrowser() {
     if (this.browser && !this.browser.isConnected()) {
       console.log('Korábbi böngésző munkamenet lezárult, új indítása...');
       this.browser = null;
+      this.context = null;
       this.page = null;
     }
 
     if (!this.browser) {
-      const isDev = process.env.NODE_ENV !== 'production' && !process.env.RENDER;
       const launchOptions = {
-        headless: process.env.HEADLESS !== undefined ? process.env.HEADLESS === 'true' : !isDev,
+        headless: process.env.HEADLESS !== undefined ? process.env.HEADLESS === 'true' : true,
         args: [
           '--no-sandbox',
           '--disable-setuid-sandbox',
           '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--headless=new',
           '--disable-blink-features=AutomationControlled'
         ]
       };
 
       if (process.env.CHROME_PATH && fs.existsSync(process.env.CHROME_PATH)) {
         launchOptions.executablePath = process.env.CHROME_PATH;
-      } else if (isDev && fs.existsSync('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')) {
+      } else if (fs.existsSync('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome')) {
         launchOptions.executablePath = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
       }
 
       this.browser = await chromium.launch(launchOptions); 
-      const context = await this.browser.newContext({
+
+      const contextOptions = {
         userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
         viewport: { width: 1280, height: 800 },
         locale: 'hu-HU',
         timezoneId: 'Europe/Budapest',
+      };
+
+      // Meglévő munkamenet (sütik) automatikus betöltése
+      if (fs.existsSync(SESSION_FILE)) {
+        try {
+          contextOptions.storageState = SESSION_FILE;
+          console.log('[Kréta] Meglévő munkamenet (sütik) betöltése a lemezről...');
+        } catch (err) {
+          console.warn('[Kréta] Nem sikerült betölteni a munkamenetet:', err.message);
+        }
+      }
+
+      this.context = await this.browser.newContext(contextOptions);
+
+      // Erőforrás-blokkoló: képek, fontok és analitikai kódok blokkolása a maximális sebességért
+      await this.context.route('**/*', (route) => {
+        const req = route.request();
+        const type = req.resourceType();
+        const url = req.url().toLowerCase();
+
+        // Képek, betűtípusok és média blokkolása
+        if (type === 'image' || type === 'font' || type === 'media') {
+          return route.abort();
+        }
+
+        // Felesleges telemetria / analitika blokkolása (másodpercekkel gyorsítja a betöltést)
+        if (
+          url.includes('google-analytics.com') ||
+          url.includes('googletagmanager.com') ||
+          url.includes('apm.e-kreta.hu') ||
+          url.includes('doubleclick.net') ||
+          url.includes('firestore.googleapis.com')
+        ) {
+          return route.abort();
+        }
+
+        return route.continue();
       });
 
-      await context.addInitScript(() => {
+      await this.context.addInitScript(() => {
         Object.defineProperty(navigator, 'webdriver', {
           get: () => undefined,
         });
       });
 
-      this.page = await context.newPage();
+      this.page = await this.context.newPage();
     }
   }
 
@@ -90,116 +202,139 @@ class KretaService {
   async handleCookieConsent(page = this.page) {
     if (!page) return;
     try {
-      await page.waitForLoadState('domcontentloaded').catch(() => {});
-      
-      // Pontos szelektor a Kréta süti elfogadó gombjára (kizárólag a <button>-re céloz, véletlenül sem a linkre)
+      // Pontos szelektor a Kréta süti elfogadó gombjára
       const cookieSelector = 'button[formaction*="acceptnecessarycookies"], button.btn-kreta:has-text("Az összes kötelező cookie elfogadása"), button:has-text("összes kötelező cookie elfogadása")';
       const cookieBtn = page.locator(cookieSelector).first();
       
-      // Megvárjuk, amíg a gomb megjelenik a DOM-ban
-      const isAttached = await cookieBtn.waitFor({ state: 'attached', timeout: 5000 }).then(() => true).catch(() => false);
-      if (isAttached) {
-        console.log('Süti tájékoztató modal érzékelve! Közvetlen gombkattintás a gombra (evaluate click)...');
-        
-        // Közvetlenül a BUTTON elemen hajtjuk végre a natív JavaScript .click() eseményt:
-        // Ez garantálja, hogy véletlenül se a gomb feletti szöveges linkre ("tájékoztatóban") kattintson!
+      const isVisible = await cookieBtn.waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false);
+      if (isVisible) {
+        console.log('[Kréta] Süti tájékoztató modal érzékelve, elfogadás...');
         await Promise.all([
-          page.waitForNavigation({ waitUntil: 'networkidle', timeout: 10000 }).catch(() => {}),
-          cookieBtn.evaluate(b => b.click())
+          page.waitForLoadState('domcontentloaded', { timeout: 5000 }).catch(() => {}),
+          cookieBtn.click().catch(() => cookieBtn.evaluate(b => b.click()).catch(() => {}))
         ]);
-        console.log('Sütik sikeresen elfogadva, modal lezárva!');
-        await page.waitForTimeout(600);
+        await page.waitForTimeout(500);
+        console.log('[Kréta] Süti elfogadva.');
       }
 
-      // Ha esetleg korábban megnyílt volna a "tájékoztatóban" külső Tudásbázis lap, azt bezárjuk
+      // Külső Tudásbázis lapok bezárása, ha megnyíltak volna
       if (this.browser) {
-        const contexts = this.browser.contexts();
-        for (const ctx of contexts) {
+        for (const ctx of this.browser.contexts()) {
           for (const p of ctx.pages()) {
             if (p.url().includes('tudasbazis.ekreta.hu') || p.url().includes('CookiePolicy')) {
-              console.log('Tudásbázis tájékoztató fül bezárása...');
+              console.log('[Kréta] Felesleges Tudásbázis fül bezárása...');
               await p.close().catch(() => {});
             }
           }
         }
       }
     } catch (err) {
-      console.log('Süti elfogadás nem volt szükséges vagy átlépve:', err.message);
+      console.log('[Kréta] Süti elfogadás átlépve:', err.message);
     }
   }
 
-  async login(username, password, schoolId) {
+  async login(username, password, schoolId = 'bmszc-neumann') {
     try {
-      await this.initBrowser();
-      console.log('Navigálás a Kréta belépési oldalára...');
-      // Itt a schoolId alapján generáljuk le az iskola pontos Kréta linkjét
-      const loginUrl = `https://${schoolId}.e-kreta.hu/Adminisztracio/Login`;
-      await this.page.goto(loginUrl, { waitUntil: 'commit', timeout: 30000 }).catch(async (e) => {
-        console.warn('page.goto commit figyelmeztetés:', e.message);
-      });
-      await this.page.waitForLoadState('domcontentloaded', { timeout: 15000 }).catch(() => {});
-      
-      // Megvárjuk az IDP bejelentkező oldal / átirányítás betöltődését
-      await this.page.waitForURL(url => url.href.includes('idp.e-kreta.hu') || url.href.includes('Login'), { timeout: 15000 }).catch(() => {});
-      await this.page.waitForLoadState('networkidle').catch(() => {});
+      this.schoolId = schoolId || 'bmszc-neumann';
 
-      // Sütik automatikus elfogadása
+      // Ha már van érvényes lementett munkamenetünk, nem kell újra kitölteni az űrlapot!
+      if (await this.isSessionValid()) {
+        console.log('[Kréta] Létező érvényes munkamenet újrahasznosítva. Nincs szükség újracsatlakozásra.');
+        return { success: true, fromSession: true };
+      }
+
+      await this.initBrowser();
+      console.log(`[Kréta] Bejelentkezés indítása az intézményhez: ${this.schoolId}...`);
+
+      // Az intézmény hivatalos belépési felületére navigálunk, ami elvégzi a megfelelő OIDC hitelesítési átirányítást és token-aláírást
+      const targetUrl = `https://${this.schoolId}.e-kreta.hu/Adminisztracio/Login`;
+      console.log(`[Kréta] Navigálás a bejelentkezési felületre (${targetUrl})...`);
+      await this.page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await this.page.waitForURL(url => url.href.includes('idp.e-kreta.hu') || url.href.includes('Login') || url.href.includes('account'), { timeout: 15000 }).catch(() => {});
+
+      // Sütik azonnali kezelése
       await this.handleCookieConsent();
 
-      // Ellenőrizzük, hogy véletlenül nem maradt-e még aktív a modal
-      const modalStillVisible = await this.page.locator('.modal.show, button[formaction*="acceptnecessarycookies"]').isVisible().catch(() => false);
-      if (modalStillVisible) {
-        console.log('A süti modal még mindig látható, újrapróbálkozás a gombbal...');
-        await this.handleCookieConsent();
-      }
+      console.log('[Kréta] Bejelentkezési mezők keresése és kitöltése...');
+      const userField = this.page.locator('input[name="UserName"], #UserName').first();
+      const passField = this.page.locator('input[name="Password"], #Password').first();
 
-      console.log('Adatok kitöltése...');
-      // Kréta IDP-n a mezők: UserName és Password, gomb: #submit-btn
-      try {
-        await this.page.waitForSelector('input[name="UserName"], #UserName', { state: 'visible', timeout: 5000 });
-        await this.page.fill('input[name="UserName"], #UserName', username);
-        await this.page.fill('input[name="Password"], #Password', password);
-        
-        console.log('Belépés indítása (gomb kattintás vagy Enter)...');
-        const submitBtn = this.page.locator('#submit-btn, button[type="submit"]:has-text("BEJELENTKEZÉS"), button:has-text("Bejelentkezés")').first();
-        if (await submitBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
-          await submitBtn.click();
-        } else {
-          await this.page.press('input[name="Password"], #Password', 'Enter');
+      const isInputReady = await userField.waitFor({ state: 'visible', timeout: 15000 }).then(() => true).catch(() => false);
+      if (!isInputReady) {
+        // Ha nem jelent meg a mező, olvassuk ki a lehetséges hibaüzenetet az oldalról
+        const pageText = await this.page.evaluate(() => document.body.innerText).catch(() => '');
+        if (pageText.includes('licence') || pageText.includes('lejárt') || pageText.includes('karbantartás') || pageText.includes('nem elérhető')) {
+          const cleanNotice = pageText.split('\n').map(t => t.trim()).filter(Boolean).slice(0, 3).join(' ');
+          throw new Error(`A Kréta rendszer hibaüzenete: ${cleanNotice}`);
         }
-      } catch (e) {
-        console.log('Automatikus kitöltés hiba, várunk a manuális belépésre...', e.message);
+        throw new Error('A Kréta bejelentkezési mező nem jelent meg 15 másodpercen belül.');
       }
 
-      // Várakozás, amíg betölt valamilyen oldal (esetleg a modulválasztó)
-      await this.page.waitForLoadState('networkidle').catch(() => {});
+      await userField.fill(username);
+      await passField.fill(password);
 
-      // Megnézzük, hogy a Kréta modulválasztó oldalán vagyunk-e
+      console.log('[Kréta] Belépés elküldése...');
+      const submitBtn = this.page.locator('#submit-btn, button[type="submit"]:has-text("BEJELENTKEZÉS"), button:has-text("Bejelentkezés")').first();
+
+      if (await submitBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+        await Promise.all([
+          this.page.waitForNavigation({ timeout: 15000 }).catch(() => {}),
+          submitBtn.click()
+        ]);
+      } else {
+        await Promise.all([
+          this.page.waitForNavigation({ timeout: 15000 }).catch(() => {}),
+          this.page.press('input[name="Password"], #Password', 'Enter')
+        ]);
+      }
+
+      await this.page.waitForTimeout(1500);
+
+      const currentUrl = this.page.url();
+      console.log('[Kréta] Jelenlegi URL a beküldés után:', currentUrl);
+
+      // Ellenőrizzük, hogy az oldalon maradtunk-e bejelentkezési hiba miatt
+      if (currentUrl.toLowerCase().includes('account/login')) {
+        const errorText = await this.page.locator('.validation-summary-errors, .field-validation-error, .alert-danger, .text-danger, #validation-summary')
+          .allInnerTexts()
+          .then(texts => texts.map(t => t.trim()).filter(Boolean).join('; '))
+          .catch(() => '');
+
+        if (errorText) {
+          console.warn('[Kréta] Sikertelen bejelentkezés, hiba a felületen:', errorText);
+          this.clearSession();
+          return {
+            success: false,
+            message: errorText,
+            error: errorText
+          };
+        }
+      }
+
+      // Ellenőrizzük, hogy a Kréta modulválasztó oldalán vagyunk-e
       try {
-        const naploGomb = await this.page.getByText('Elektronikus napló', { exact: false });
-        if (await naploGomb.count() > 0) {
-          console.log('Modulválasztó érzékelve! Kattintás az Elektronikus naplóra...');
-          await naploGomb.first().click();
-          
-          await this.page.waitForTimeout(3000); // Várunk, hátha új fül nyílik
-          
-          // Ha új ablak/fül nyílt, váltsunk a legfrissebb Kréta napló fülre (kizárva a külső tájékoztató lapokat)
+        const naploGomb = this.page.getByText('Elektronikus napló', { exact: false }).first();
+        if (await naploGomb.isVisible({ timeout: 4000 }).catch(() => false)) {
+          console.log('[Kréta] Modulválasztó érzékelve! Kattintás az Elektronikus naplóra...');
+          await naploGomb.click();
+          await this.page.waitForTimeout(2000);
+
           const context = this.browser.contexts()[0];
           const validPages = context.pages().filter(p => !p.url().includes('tudasbazis.ekreta.hu') && !p.url().includes('CookiePolicy'));
           if (validPages.length > 0) {
-            this.page = validPages[validPages.length - 1]; // A legutolsó érvényes napló fül
+            this.page = validPages[validPages.length - 1];
           }
-
-          await this.page.waitForLoadState('networkidle').catch(() => {});
           await this.handleCookieConsent();
         }
       } catch (err) {
-        console.log('Nem találtam Elektronikus napló gombot, továbblépés.');
+        console.log('[Kréta] Modulválasztó nem volt jelen, továbblépés.');
       }
 
+      console.log('[Kréta] Sikeres bejelentkezés! Munkamenet elmentése a lemezre...');
+      await this.saveSession();
       return { success: true };
     } catch (error) {
-      console.error('Kréta belépési hiba:', error);
+      console.error('[Kréta] Belépési hiba:', error);
       if (!this.browser || !this.browser.isConnected()) {
         return { 
           success: false, 
@@ -207,8 +342,11 @@ class KretaService {
           error: error.message 
         };
       }
-      // Ha manuálisan lépett be a felhasználó, akkor is sikeresnek vesszük, ha nincs komoly hiba
-      return { success: true }; 
+      return { 
+        success: false, 
+        message: 'A bejelentkezés sikertelen: ' + (error.message || 'Időtúllépés'),
+        error: error.message 
+      };
     }
   }
 
@@ -253,7 +391,7 @@ class KretaService {
     // Cache logikája
     const cacheKey = isClass ? 'classTimetable' : 'timetable';
     const cache = this.loadCache();
-    if (!refresh && cache[cacheKey] && cache[cacheKey][dayIndexToUse] && cache[cacheKey][dayIndexToUse].length > 0) {
+    if ((!refresh || !this.page) && cache[cacheKey] && cache[cacheKey][dayIndexToUse] && cache[cacheKey][dayIndexToUse].length > 0) {
       console.log(`[Backend] ${isClass ? 'Osztály' : 'Tanári'} Órarend betöltése cacheből (${activeDay})...`);
       const finalSchedule = JSON.parse(JSON.stringify(cache[cacheKey][dayIndexToUse]));
       
@@ -274,12 +412,8 @@ class KretaService {
     }
 
     if (!this.page) {
-      console.log('[Fejlesztői mód] Nincs valós böngésző munkamenet, mock adatok visszadása...');
-      const mockSchedule = [
-         { id: 1, hourNumber: 1, subject: 'Matematika', details: '11.A', room: '201', duration: '07:30 - 08:15', time: '07:30' },
-         { id: 2, hourNumber: 2, subject: 'Történelem', details: '11.A', room: '201', duration: '08:25 - 09:10', time: '08:25' }
-      ];
-      return { data: { day: activeDay, list: isClass ? mockSchedule : [] }, fromCache: false };
+      console.log('[Fejlesztői mód] Nincs valós böngésző munkamenet...');
+      return { data: { day: activeDay, list: cache[cacheKey]?.[dayIndexToUse] || [] }, fromCache: true };
     }
 
     // Ha osztály órarendet kérünk, az a régi UI-on egy TODO!!! oldalra visz, 
@@ -294,7 +428,7 @@ class KretaService {
       try {
         console.log(`Navigálás a Tanári Órarend oldalra...`);
         
-        const targetUrl = 'https://bmszc-neumann.e-kreta.hu/Orarend/TanariOrarend';
+        const targetUrl = `https://${this.schoolId || 'bmszc-neumann'}.e-kreta.hu/Orarend/TanariOrarend`;
         const urlCheck = 'TanariOrarend';
         
         if (!this.page.url().includes(urlCheck)) {
@@ -457,6 +591,52 @@ class KretaService {
     }); // withLock vége
   }
 
+  async getAllTimetable(refresh = false, isClass = false) {
+    const cacheKey = isClass ? 'classTimetable' : 'timetable';
+    const cache = this.loadCache();
+    const napok = ['Vasárnap', 'Hétfő', 'Kedd', 'Szerda', 'Csütörtök', 'Péntek', 'Szombat'];
+    
+    // Ha nem kér refresh-t VAGY nincs valós böngésző kapcsolat, és van a cache-ben adat
+    if ((!refresh || !this.page) && cache[cacheKey]) {
+      const result = {};
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const todayDay = now.getDay();
+
+      for (let d = 1; d <= 5; d++) {
+        const rawList = cache[cacheKey][d] || [];
+        const dayList = JSON.parse(JSON.stringify(rawList));
+
+        // Ha az aktuális hétköznap van, megjelöljük az aktív órát
+        if (todayDay === d) {
+          for (const ora of dayList) {
+            if (ora.duration && ora.duration.includes('-')) {
+              const [startStr, endStr] = ora.duration.split(' - ');
+              const startMin = parseInt(startStr.split(':')[0]) * 60 + parseInt(startStr.split(':')[1]);
+              const endMin = parseInt(endStr.split(':')[0]) * 60 + parseInt(endStr.split(':')[1]);
+              if (currentMinutes >= startMin && currentMinutes <= endMin) {
+                ora.isActive = true;
+              }
+            }
+          }
+        }
+        result[d] = {
+          day: napok[d],
+          list: dayList
+        };
+      }
+      return { data: result, fromCache: true };
+    }
+
+    // Refresh vagy hiányzó cache esetén naponként lekérjük
+    const result = {};
+    for (let d = 1; d <= 5; d++) {
+      const dayRes = await this.getTimetable(d, refresh, isClass);
+      result[d] = dayRes.data;
+    }
+    return { data: result, fromCache: false };
+  }
+
   async getClassExams(osztalyUrlStr) {
     const cacheKey = 'classExams_cache';
     const cache = this.loadCache();
@@ -496,6 +676,8 @@ class KretaService {
       // A calendarData egy JSON array lesz az eseményekkel
       // Formázzuk és szűrjük őket
       const exams = [];
+      const subjectsMap = {};
+
       if (Array.isArray(calendarData)) {
           calendarData.forEach(event => {
              // A Kréta esemény objektum mezői változhatnak, kinyerjük amit tudunk
@@ -513,18 +695,40 @@ class KretaService {
                      status: 'written'
                  });
              }
+
+             // Tantárgy és tanár kinyerése a valós órarendből
+             let rawSubj = event.Tantargy || (title.includes(' - ') ? title.split(' - ')[0] : title).trim();
+             if (rawSubj && !rawSubj.toLowerCase().includes('felzárkóztatás') && !rawSubj.toLowerCase().includes('tehetséggondozás') && !rawSubj.toLowerCase().includes('sportkör')) {
+               let cleanSubj = rawSubj.replace(/\s*-\s*11\.?[a-zA-Z]?/g, '').trim();
+               if (!subjectsMap[cleanSubj]) {
+                 subjectsMap[cleanSubj] = {
+                   subject: cleanSubj,
+                   teachers: new Set(),
+                   count: 0
+                 };
+               }
+               subjectsMap[cleanSubj].count++;
+               const teacher = event.Tanar || event.TanarNeve || event.tanar;
+               if (teacher) subjectsMap[cleanSubj].teachers.add(teacher);
+             }
           });
       }
+
+      const extractedSubjects = Object.values(subjectsMap).map(s => ({
+        subject: s.subject,
+        teachers: Array.from(s.teachers).join(', '),
+        lessonsCount: s.count
+      }));
       
-      this.saveCache({ [cacheKey]: exams });
-      return { success: true, data: exams, raw: calendarData };
+      this.saveCache({ [cacheKey]: exams, classScheduleSubjects: extractedSubjects });
+      return { success: true, data: exams, subjects: extractedSubjects, raw: calendarData };
       
     } catch (e) {
       console.error('Hiba az osztály dolgozatok lekérésekor:', e);
       const cache = this.loadCache();
       if (cache['classExams_cache']) {
           console.log('Cache-ből adjuk vissza a dolgozatokat a hiba miatt.');
-          return { success: true, data: cache['classExams_cache'], fromCache: true };
+          return { success: true, data: cache['classExams_cache'], subjects: cache['classScheduleSubjects'] || [], fromCache: true };
       }
       return { success: false, data: [], error: e.message };
     }
@@ -551,11 +755,21 @@ class KretaService {
       return cache.groups;
     }
 
-    if (!this.page) return [];
-    
     return this._withLock(async () => {
+      if (!this.page || !this.browser || !this.browser.isConnected()) {
+        await this.ensureAuthenticated();
+      }
+
+      if (!this.page) {
+        if (cache.groups && cache.groups.length > 0) {
+          console.log('[Backend] Nincs böngésző munkamenet, cache-elt csoportok visszaadása.');
+          return cache.groups;
+        }
+        return [];
+      }
+
       try {
-        await this.page.goto('https://bmszc-neumann.e-kreta.hu/Tanulo/TanarTanitottTanulok', { waitUntil: 'domcontentloaded', timeout: 20000 });
+        await this.page.goto(`https://${this.schoolId || 'bmszc-neumann'}.e-kreta.hu/Tanulo/TanarTanitottTanulok`, { waitUntil: 'domcontentloaded', timeout: 20000 });
       } catch (e) {
         console.log('Navigációs timeout a getGroups-nál:', e.message);
       }
@@ -615,6 +829,9 @@ class KretaService {
       await this.page.waitForTimeout(3000); 
     } catch (e) {
       console.log('Nem töltött be a Tanított Tanulók táblázat:', e.message);
+      if (cache.groups && cache.groups.length > 0) {
+        return cache.groups;
+      }
       return [];
     }
     
@@ -651,75 +868,344 @@ class KretaService {
        return Object.values(groups);
     });
     
-    this.saveCache({ groups: groupedData });
-    return groupedData;
+    if (groupedData && groupedData.length > 0) {
+      this.saveCache({ groups: groupedData });
+      return groupedData;
+    }
+    if (cache.groups && cache.groups.length > 0) {
+      return cache.groups;
+    }
+    return [];
     }); // withLock vége
   }
 
-  async getExams() {
-    if (!this.page) {
-      console.log('[Fejlesztői mód] Nincs valós böngésző munkamenet, mock adatok visszadása (Dolgozatok)...');
-      return []; // Vagy lehetne mock dolgozat is, de most adjunk vissza üres listát.
-    }
+  async getExams(refresh = false) {
+    const cacheKey = 'exams';
+    const cache = this.loadCache();
     
+    // Ha nem kényszerített frissítés és van érvényes cache, azonnal adjuk vissza
+    if (!refresh && cache[cacheKey] && Array.isArray(cache[cacheKey]) && cache[cacheKey].length > 0) {
+      console.log(`[Backend] Saját dolgozatok betöltése cache-ből (${cache[cacheKey].length} db)...`);
+      return cache[cacheKey];
+    }
+
     return this._withLock(async () => {
-      try {
-          await this.page.goto('https://bmszc-neumann.e-kreta.hu/Tanar/TanarBejelentettSzamonkeresek', { waitUntil: 'domcontentloaded', timeout: 15000 });
-    } catch (e) {
-        console.log('Navigációs hiba a dolgozatok lekérésekor:', e.message);
-        return [];
-    }
-    
-    // Kezeljük a felugró ablakokat, ha vannak (általában érdemes egy keresést nyomni, vagy alapból is betölt)
-    try {
-      await this.page.waitForTimeout(1000);
-      const searchButton = await this.page.waitForSelector('.kereses-gomb', { state: 'visible', timeout: 2000 });
-      if (searchButton) {
-        console.log('Kereső ablak észlelve a számonkéréseknél, kattintás...');
-        await searchButton.click();
-        await this.page.waitForTimeout(1000);
+      // Ha még nincs page vagy megszakadt a kapcsolat, kíséreljük meg a munkamenet visszaállítását
+      if (!this.page || !this.browser || !this.browser.isConnected()) {
+        await this.ensureAuthenticated();
       }
-    } catch(e) {
-      console.log('Nincs külön kereső gomb a számonkéréseknél, vagy egyből listáz.');
-    }
-    
-    // Várjuk meg amíg a Kendo Grid betöltődik
-    try {
-      await this.page.waitForSelector('.k-grid-content table tbody tr', { timeout: 10000 });
-      // Extra várakozás az adatok biztos megérkezéséhez
-      await this.page.waitForTimeout(2000); 
-    } catch (e) {
-      console.log('Nem töltött be a Számonkérések táblázat:', e.message);
-      return [];
-    }
-    
-    // Kinyerjük a sorokat
-    const exams = await this.page.$$eval('.k-grid-content table tbody tr', rows => {
-       const results = [];
-       rows.forEach((row, index) => {
-          const cells = row.querySelectorAll('td');
-          // Ha ez az "üres" sor (Nincs megjeleníthető adat), akkor ugorjuk át
-          if (cells.length === 1 && cells[0].innerText.includes('Nincs megjeleníthető')) return;
-          
-          if (cells.length >= 8) {
-             results.push({
-                id: `exam_${index}_${Date.now()}`,
-                date: cells[1].innerText.trim(),         // Dátum
-                dayOfWeek: cells[2].innerText.trim(),    // Hét napja
-                lessonNumber: cells[3].innerText.trim(), // Óraszám
-                subject: cells[4].innerText.trim(),      // Tantárgy
-                className: cells[5].innerText.trim(),    // Osztály/csoport
-                type: cells[6].innerText.trim(),         // Számonkérés módja
-                topic: cells[7].innerText.trim(),        // Számonkérés témája
-                announcedAt: cells[8] ? cells[8].innerText.trim() : '' // Bejelentés dátuma
-             });
-          }
-       });
-       return results;
-    });
-    
-    return exams;
+
+      if (!this.page) {
+        if (cache[cacheKey] && Array.isArray(cache[cacheKey])) {
+          console.log('[Backend] Nincs böngésző munkamenet, cache-elt dolgozatok visszaadása.');
+          return cache[cacheKey];
+        }
+        console.log('[Backend] Nincs valós böngésző munkamenet és nincs cache, üres lista visszaadása.');
+        return [];
+      }
+      
+      try {
+        console.log('[Kréta] Dolgozatok (Számonkérések) lekérése a Kréta felületéről...');
+        await this.page.goto(`https://${this.schoolId || 'bmszc-neumann'}.e-kreta.hu/Tanar/TanarBejelentettSzamonkeresek`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      } catch (e) {
+        console.log('Navigációs hiba a dolgozatok lekérésekor:', e.message);
+        if (cache[cacheKey] && Array.isArray(cache[cacheKey])) {
+          return cache[cacheKey];
+        }
+        return [];
+      }
+      
+      // Kezeljük a felugró ablakokat, ha vannak (általában érdemes egy keresést nyomni, vagy alapból is betölt)
+      try {
+        await this.page.waitForTimeout(1000);
+        const searchButton = await this.page.waitForSelector('.kereses-gomb', { state: 'visible', timeout: 2000 });
+        if (searchButton) {
+          console.log('Kereső ablak észlelve a számonkéréseknél, kattintás...');
+          await searchButton.click();
+          await this.page.waitForTimeout(1000);
+        }
+      } catch(e) {
+        console.log('Nincs külön kereső gomb a számonkéréseknél, vagy egyből listáz.');
+      }
+      
+      // Várjuk meg amíg a Kendo Grid betöltődik
+      try {
+        await this.page.waitForSelector('.k-grid-content table tbody tr', { timeout: 10000 });
+        // Extra várakozás az adatok biztos megérkezéséhez
+        await this.page.waitForTimeout(2000); 
+      } catch (e) {
+        console.log('Nem töltött be a Számonkérések táblázat:', e.message);
+        if (cache[cacheKey] && Array.isArray(cache[cacheKey])) {
+          return cache[cacheKey];
+        }
+        return [];
+      }
+      
+      // Kinyerjük a sorokat
+      const exams = await this.page.$$eval('.k-grid-content table tbody tr', rows => {
+         const results = [];
+         rows.forEach((row, index) => {
+            const cells = row.querySelectorAll('td');
+            // Ha ez az "üres" sor (Nincs megjeleníthető adat), akkor ugorjuk át
+            if (cells.length === 1 && cells[0].innerText.includes('Nincs megjeleníthető')) return;
+            
+            if (cells.length >= 8) {
+               results.push({
+                  id: `exam_${index}_${Date.now()}`,
+                  date: cells[1].innerText.trim(),         // Dátum
+                  dayOfWeek: cells[2].innerText.trim(),    // Hét napja
+                  lessonNumber: cells[3].innerText.trim(), // Óraszám
+                  subject: cells[4].innerText.trim(),      // Tantárgy
+                  className: cells[5].innerText.trim(),    // Osztály/csoport
+                  type: cells[6].innerText.trim(),         // Számonkérés módja
+                  topic: cells[7].innerText.trim(),        // Számonkérés témája
+                  announcedAt: cells[8] ? cells[8].innerText.trim() : '' // Bejelentés dátuma
+               });
+            }
+         });
+         return results;
+      });
+      
+      if (exams && exams.length > 0) {
+        this.saveCache({ [cacheKey]: exams, examsUpdatedAt: new Date().toISOString() });
+        console.log(`[Kréta] ${exams.length} db dolgozat sikeresen kiolvasva és elmentve a cache-be.`);
+        return exams;
+      }
+
+      if (cache[cacheKey] && Array.isArray(cache[cacheKey]) && cache[cacheKey].length > 0) {
+        return cache[cacheKey];
+      }
+
+      return exams;
     }); // _withLock vége
+  }
+
+  _decodeHtmlEntities(str) {
+    if (!str) return '';
+    return str
+      .replace(/&#225;/g, 'á')
+      .replace(/&#233;/g, 'é')
+      .replace(/&#237;/g, 'í')
+      .replace(/&#243;/g, 'ó')
+      .replace(/&#246;/g, 'ö')
+      .replace(/&#245;/g, 'ő')
+      .replace(/&#250;/g, 'ú')
+      .replace(/&#252;/g, 'ü')
+      .replace(/&#251;/g, 'ű')
+      .replace(/&#193;/g, 'Á')
+      .replace(/&#201;/g, 'É')
+      .replace(/&#205;/g, 'Í')
+      .replace(/&#211;/g, 'Ó')
+      .replace(/&#214;/g, 'Ö')
+      .replace(/&#213;/g, 'Ő')
+      .replace(/&#218;/g, 'Ú')
+      .replace(/&#220;/g, 'Ü')
+      .replace(/&#219;/g, 'Ű');
+  }
+
+  async getGrades(refresh = false) {
+    const cache = this.loadCache();
+    if (!refresh && cache.grades && Object.keys(cache.grades).length > 0) {
+      console.log('[Backend] Értékelések betöltése cacheből...');
+      return { success: true, data: cache.grades, fromCache: true, updatedAt: cache.gradesUpdatedAt || null };
+    }
+
+    return this._withLock(async () => {
+      if (!this.page || !this.browser || !this.browser.isConnected()) {
+        await this.ensureAuthenticated();
+      }
+
+      if (!this.page) {
+        if (cache.grades && Object.keys(cache.grades).length > 0) {
+          return { success: true, data: cache.grades, fromCache: true, updatedAt: cache.gradesUpdatedAt || null };
+        }
+        return { success: false, data: {}, fromCache: false, message: 'Nincs aktív Kréta munkamenet' };
+      }
+
+      try {
+        console.log('[Kréta] Értékelések kiolvasása a TanuloErtekeles/Ertekeles/IndexEvkozi oldalról...');
+        const baseUrl = `https://${this.schoolId || 'bmszc-neumann'}.e-kreta.hu/TanuloErtekeles/Ertekeles/IndexEvkozi`;
+
+        await this.page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 25000 });
+        await this.page.waitForTimeout(2500);
+
+        // Kinyerjük a foglalkozásokat a Kendo dropdownból
+        const foglalkozasok = await this.page.evaluate(() => {
+          const dropdown = window.jQuery('#FoglalkozasId').data('kendoDropDownList');
+          if (!dropdown) return [];
+          return dropdown.dataSource.data().map(d => ({
+            text: d.Nev || d.Text || d.Name || d.text,
+            value: String(d.Id || d.Value || d.value)
+          }));
+        });
+
+        console.log(`[Kréta] Talált foglalkozások száma: ${foglalkozasok.length}`);
+        if (!foglalkozasok || foglalkozasok.length === 0) {
+          console.warn('[Kréta] Nem sikerült beolvasni a foglalkozások listáját a dropdownból.');
+          if (cache.grades && Object.keys(cache.grades).length > 0) {
+            return { success: true, data: cache.grades, fromCache: true, updatedAt: cache.gradesUpdatedAt || null };
+          }
+          return { success: true, data: {}, fromCache: false };
+        }
+
+        const allGradesByGroup = {};
+        const monthKeys = ['Szeptember', 'Oktober', 'November', 'December', 'JanuarI', 'JanuarII', 'Februar', 'Marcius', 'Aprilis', 'Majus', 'Junius'];
+
+        for (let i = 0; i < foglalkozasok.length; i++) {
+          const grp = foglalkozasok[i];
+          console.log(`[Kréta] [${i + 1}/${foglalkozasok.length}] Kiolvasás: ${grp.text} (ID: ${grp.value})...`);
+
+          try {
+            await this.page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
+            await this.page.waitForTimeout(1200);
+
+            await this.page.evaluate((idVal) => {
+              const dropdown = window.jQuery('#FoglalkozasId').data('kendoDropDownList');
+              if (dropdown) {
+                dropdown.value(idVal);
+                dropdown.trigger('change');
+              }
+            }, grp.value);
+            await this.page.waitForTimeout(500);
+
+            const startBtn = await this.page.$('#StartTovabbButton');
+            if (startBtn && await startBtn.isVisible()) {
+              await startBtn.click();
+              await this.page.waitForTimeout(2500);
+            }
+
+            const rows = await this.page.evaluate(() => {
+              const grid = window.jQuery('.TanuloErtekelesGrid, [data-role="grid"]').data('kendoGrid');
+              if (!grid || !grid.dataSource) return [];
+              return grid.dataSource.data().map(r => ({
+                tanuloNev: r.TanuloNev || r.TanuloNevElotagNelkul,
+                atlag: r.Atlag,
+                months: {
+                  Szeptember: r.Szeptember || '',
+                  Oktober: r.Oktober || '',
+                  November: r.November || '',
+                  December: r.December || '',
+                  JanuarI: r.JanuarI || '',
+                  JanuarII: r.JanuarII || '',
+                  Februar: r.Februar || '',
+                  Marcius: r.Marcius || '',
+                  Aprilis: r.Aprilis || '',
+                  Majus: r.Majus || '',
+                  Junius: r.Junius || ''
+                }
+              }));
+            });
+
+            console.log(`[Kréta]   -> ${rows.length} diák beolvasva (${grp.text}).`);
+
+            const studentsObj = {};
+            const allNumericGrades = [];
+            let failingCount = 0;
+            let excellentCount = 0;
+            const distribution = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+            for (const row of rows) {
+              const sName = row.tanuloNev;
+              if (!sName) continue;
+
+              const studentGrades = [];
+              const spanRegex = /<span\s+([^>]+)>(\d+)<\/span>/gi;
+
+              for (const mKey of monthKeys) {
+                const monthHtml = row.months[mKey];
+                if (!monthHtml) continue;
+                let match;
+                while ((match = spanRegex.exec(monthHtml)) !== null) {
+                  const attrs = match[1];
+                  const gradeVal = parseInt(match[2], 10);
+
+                  const getAttr = (name) => {
+                    const mat = new RegExp(`data-${name}=['"]([^'"]*)['"]`, 'i').exec(attrs);
+                    return mat ? this._decodeHtmlEntities(mat[1]) : '';
+                  };
+
+                  const sulyStr = getAttr('suly');
+                  const weight = parseInt(sulyStr.replace(/[^0-9]/g, '') || '100', 10);
+                  const tema = getAttr('ertekelestema').replace(/^Téma:\s*/i, '');
+                  const tipus = getAttr('tipusmod') || 'Értékelés';
+                  const datum = getAttr('datum') || '';
+                  const ertekelesId = getAttr('tanuloertekelesid') || '';
+
+                  if (gradeVal >= 1 && gradeVal <= 5) {
+                    studentGrades.push({
+                      id: ertekelesId || `${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+                      value: gradeVal,
+                      numericValue: gradeVal,
+                      weight: weight || 100,
+                      type: tipus,
+                      topic: tema,
+                      date: datum,
+                      month: mKey
+                    });
+
+                    distribution[gradeVal] = (distribution[gradeVal] || 0) + 1;
+                    allNumericGrades.push(gradeVal);
+                  }
+                }
+              }
+
+              const sAvg = row.atlag !== null && row.atlag !== undefined ? Number(Number(row.atlag).toFixed(2)) : null;
+              if (sAvg !== null) {
+                if (sAvg < 2.0) failingCount++;
+                if (sAvg >= 4.5) excellentCount++;
+              }
+
+              studentsObj[sName] = studentGrades;
+            }
+
+            const totalCount = allNumericGrades.length;
+            const avg = totalCount > 0 ? (allNumericGrades.reduce((a, b) => a + b, 0) / totalCount) : 0;
+            let median = 0;
+            if (totalCount > 0) {
+              const sorted = [...allNumericGrades].sort((a, b) => a - b);
+              const mid = Math.floor(totalCount / 2);
+              median = totalCount % 2 !== 0 ? sorted[mid] : ((sorted[mid - 1] + sorted[mid]) / 2);
+            }
+
+            const parts = grp.text.trim().split(' - ');
+            const className = parts[0] ? parts[0].trim() : grp.text.trim();
+            const subject = parts[1] ? parts[1].trim() : '';
+
+            const groupData = {
+              id: grp.text.trim(),
+              className,
+              subject,
+              students: studentsObj,
+              stats: {
+                average: Number(avg.toFixed(2)),
+                median: Number(median.toFixed(2)),
+                count: totalCount,
+                failingCount,
+                excellentCount,
+                distribution
+              }
+            };
+
+            allGradesByGroup[grp.text.trim()] = groupData;
+            if (className !== grp.text.trim()) {
+              allGradesByGroup[className] = groupData;
+            }
+          } catch (itemErr) {
+            console.error(`[Kréta] Hiba ennél a csoportnál (${grp.text}):`, itemErr.message);
+          }
+        }
+
+        this.saveCache({ grades: allGradesByGroup, gradesUpdatedAt: new Date().toISOString() });
+        return { success: true, data: allGradesByGroup, fromCache: false, updatedAt: new Date().toISOString() };
+
+      } catch (err) {
+        console.error('[Kréta] Hiba az értékelések kiolvasásakor:', err);
+        if (cache.grades && Object.keys(cache.grades).length > 0) {
+          return { success: true, data: cache.grades, fromCache: true, updatedAt: cache.gradesUpdatedAt || null };
+        }
+        return { success: false, data: {}, error: err.message };
+      }
+    });
   }
 
   async getMyClassStudents(refresh = false) {
@@ -729,127 +1215,176 @@ class KretaService {
       return { data: cache.students, fromCache: true };
     }
 
-    if (!this.page) {
-      if (cache.students && cache.students.length > 0) {
-          console.log('[Fejlesztői mód] Nincs böngésző munkamenet, de van cache. A cache visszaadása mock helyett.');
+    return this._withLock(async () => {
+      // Ha még nincs page vagy lezárult a böngésző, megpróbáljuk visszaállítani az elmentett munkamenetet
+      if (!this.page || !this.browser || !this.browser.isConnected()) {
+        await this.ensureAuthenticated();
+      }
+
+      if (!this.page) {
+        if (cache.students && cache.students.length > 0) {
+          console.log('[Backend] Nincs böngésző munkamenet, de van cache. A cache visszaadása.');
           return { data: cache.students, fromCache: true };
+        }
+        const fallbackStudents = this._extractStudentsFromCache(cache);
+        if (fallbackStudents.length > 0) {
+          return { data: fallbackStudents, fromCache: true };
+        }
+        console.log('[Backend] Nincs valós böngésző munkamenet, mock adatok visszadása (Osztály tanulói)...');
+        const mockData = [
+          { id: 'mock_1', name: 'Kovács Anna', rawData: ['1', 'Kovács Anna', '12345678901', '2008. 10. 07.'] },
+          { id: 'mock_2', name: 'Nagy Gábor', rawData: ['2', 'Nagy Gábor', '12345678902', '2008. 10. 08.'] },
+          { id: 'mock_3', name: 'Szabó Zsófia', rawData: ['3', 'Szabó Zsófia', '12345678903', '2008. 10. 10.'] },
+          { id: 'mock_4', name: 'Tóth Bence', rawData: ['4', 'Tóth Bence', '12345678904', '2008. 03. 15.'] },
+          { id: 'mock_5', name: 'Kiss Péter', rawData: ['5', 'Kiss Péter', '12345678905', '2008. 12. 01.'] },
+          { id: 'mock_6', name: 'Varga Réka', rawData: ['6', 'Varga Réka', '12345678906', '2008. 10. 11.'] }
+        ];
+        return { data: mockData, fromCache: false };
       }
-      console.log('[Fejlesztői mód] Nincs valós böngésző munkamenet, mock adatok visszadása (Osztály tanulói)...');
-      const mockData = [
-        { id: 'mock_1', name: 'Kovács Anna', rawData: ['1', 'Kovács Anna', '12345678901', '2008. 10. 07.'] },
-        { id: 'mock_2', name: 'Nagy Gábor', rawData: ['2', 'Nagy Gábor', '12345678902', '2008. 10. 08.'] },
-        { id: 'mock_3', name: 'Szabó Zsófia', rawData: ['3', 'Szabó Zsófia', '12345678903', '2008. 10. 10.'] },
-        { id: 'mock_4', name: 'Tóth Bence', rawData: ['4', 'Tóth Bence', '12345678904', '2008. 03. 15.'] },
-        { id: 'mock_5', name: 'Kiss Péter', rawData: ['5', 'Kiss Péter', '12345678905', '2008. 12. 01.'] },
-        { id: 'mock_6', name: 'Varga Réka', rawData: ['6', 'Varga Réka', '12345678906', '2008. 10. 11.'] }
-      ];
-      return { data: mockData, fromCache: false };
-    }
-    
-    try {
-      if (!this.page.url().includes('OsztalyTanuloi')) {
-        await this._withLock(async () => {
-          await this.page.goto('https://bmszc-neumann.e-kreta.hu/Tanulo/OsztalyTanuloi', { waitUntil: 'domcontentloaded', timeout: 20000 });
+
+      try {
+        console.log('[Kréta] Navigálás az Osztály Tanulói oldalra...');
+        const targetUrl = `https://${this.schoolId || 'bmszc-neumann'}.e-kreta.hu/Tanulo/OsztalyTanuloi`;
+        if (!this.page.url().includes('OsztalyTanuloi')) {
+          await this.page.goto(targetUrl, { waitUntil: 'domcontentloaded', timeout: 20000 });
+        }
+
+        // Ellenőrizzük, hogy nem dobott-e ki a belépési oldalra
+        const curUrl = this.page.url().toLowerCase();
+        if (curUrl.includes('account/login') || curUrl.includes('idp.e-kreta.hu')) {
+          console.warn('[Kréta] A munkamenet lejárt az Osztály Tanulói oldalon.');
+          if (cache.students && cache.students.length > 0) {
+            return { data: cache.students, fromCache: true };
+          }
+          const fallback = this._extractStudentsFromCache(cache);
+          if (fallback.length > 0) return { data: fallback, fromCache: true };
+          return { data: [], fromCache: false };
+        }
+
+        // Kezeljük a keresés / tovább gombot
+        try {
+          await this.page.waitForTimeout(1000);
+          const searchButton = await this.page.waitForSelector('#StartOsztalyTanuloi, #btnKereses, .kereses-gomb, button:has-text("TOVÁBB"), button:has-text("Tovább"), button:has-text("Keresés"), button:has-text("Lekérdezés")', { state: 'visible', timeout: 3000 });
+          if (searchButton) {
+            console.log('[Kréta] Keresés / Tovább gomb megnyomása (Osztály Tanulói)...');
+            await searchButton.click();
+            await this.page.waitForTimeout(1500);
+          }
+        } catch(e) {}
+
+        // Kendo Grid lapméret beállítása
+        try {
+          await this.page.evaluate(() => {
+            try {
+              const gridElement = document.querySelector('[data-role="grid"]');
+              if (gridElement && window.jQuery) {
+                const grid = window.jQuery(gridElement).data('kendoGrid');
+                if (grid && grid.dataSource && grid.dataSource.pageSize() < 200) {
+                  grid.dataSource.pageSize(200);
+                }
+              }
+            } catch(err) {}
+          });
+        } catch(e) {}
+
+        // Várjuk meg a táblázat betöltődését
+        try {
+          await this.page.waitForSelector('.k-grid-content table tbody tr, table tbody tr', { timeout: 10000 });
+        } catch (e) {
+          console.log('[Kréta] Nem töltött be az Osztály Tanulói táblázat:', e.message);
+        }
+
+        // Adatok kinyerése
+        let students = await this.page.$$eval('.k-grid-content table tbody tr, table tbody tr', rows => {
+           const results = [];
+           rows.forEach((row) => {
+              const cells = row.querySelectorAll('td');
+              if (cells.length === 1 && cells[0].innerText.includes('Nincs megjeleníthető')) return;
+              
+              if (cells.length >= 2) {
+                 const name = cells[1] ? cells[1].innerText.trim() : (cells[0] ? cells[0].innerText.trim() : '');
+                 if (name && name !== 'Nincs megjeleníthető elem.' && name !== 'Ismeretlen') {
+                   results.push({
+                      name: name,
+                      rawData: Array.from(cells).map(c => c.innerText.trim())
+                   });
+                 }
+              }
+           });
+           return results;
         });
+
+        // Duplikációk szűrése
+        const uniqueStudentsMap = new Map();
+        students.forEach(s => {
+           if (s.name && s.name !== 'Ismeretlen') {
+              if (!uniqueStudentsMap.has(s.name) || s.rawData.length > uniqueStudentsMap.get(s.name).rawData.length) {
+                 uniqueStudentsMap.set(s.name, s);
+              }
+           }
+        });
+        students = Array.from(uniqueStudentsMap.values());
+
+        // Fő osztály keresése ha több osztály tanulója szerepelne
+        const classCounts = {};
+        students.forEach(s => {
+           const className = s.rawData.length >= 8 ? s.rawData[7] : null;
+           if (className && className.trim() !== '') {
+              classCounts[className] = (classCounts[className] || 0) + 1;
+           }
+        });
+        
+        let mainClass = null;
+        let maxCount = 0;
+        for (const [cName, count] of Object.entries(classCounts)) {
+           if (count > maxCount) {
+              maxCount = count;
+              mainClass = cName;
+           }
+        }
+        
+        if (mainClass && students.length > maxCount) {
+           console.log(`[Osztály szűrés] Fő osztályként azonosítva: ${mainClass}. A többi osztály tanulója elrejtve.`);
+           students = students.filter(s => s.rawData.length >= 8 && s.rawData[7] === mainClass);
+        }
+
+        if (students.length > 0) {
+          students = students.map((s, index) => ({
+             id: `student_${index}`,
+             name: s.name,
+             rawData: s.rawData
+          }));
+          console.log(`[Kréta] Kinyert tanulók száma: ${students.length}`);
+          this.saveCache({ students });
+          return { data: students, fromCache: false };
+        }
+
+        // Ha az OsztályTanuloi nem adott vissza diákot, fallback a meglévő cache-re vagy a csoportokból kinyert adatra
+        console.log('[Kréta] Nem sikerült új tanulókat találni az Osztály Tanulói oldalon, tartalék opciók vizsgálata...');
+        if (cache.students && cache.students.length > 0) {
+          return { data: cache.students, fromCache: true };
+        }
+
+        const fallback = this._extractStudentsFromCache(cache);
+        if (fallback.length > 0) {
+          this.saveCache({ students: fallback });
+          return { data: fallback, fromCache: true };
+        }
+
+        return { data: [], fromCache: false };
+      } catch (e) {
+        console.error('[Kréta] Hiba az Osztály Tanulói lekérésekor:', e.message);
+        if (cache.students && cache.students.length > 0) {
+          console.log('[Kréta] Hiba történt, korábbi cache visszaadása.');
+          return { data: cache.students, fromCache: true };
+        }
+        const fallback = this._extractStudentsFromCache(cache);
+        if (fallback.length > 0) {
+          return { data: fallback, fromCache: true };
+        }
+        return { data: [], fromCache: false };
       }
-    } catch (e) {
-      console.log('Navigációs hiba az Osztály Tanulói oldalnál:', e.message);
-    }
-    
-    // Kezeljük a keresés gombot, ha van
-    try {
-      await this.page.waitForTimeout(1000);
-      const searchButton = await this.page.waitForSelector('.kereses-gomb, #btnKereses', { state: 'visible', timeout: 2000 });
-      if (searchButton) {
-        console.log('Keresés gomb megnyomása (Osztály Tanulói)...');
-        await searchButton.click();
-        await this.page.waitForTimeout(1500);
-      }
-    } catch(e) {}
-    
-    // Várjuk meg amíg a grid betöltődik
-    try {
-      await this.page.waitForTimeout(3000); 
-      // Kinyomtatjuk a DOM-t
-      const pageInfo = await this.page.evaluate(() => {
-         const tables = Array.from(document.querySelectorAll('table')).map(t => ({
-             className: t.className,
-             id: t.id,
-             rows: Array.from(t.querySelectorAll('tr')).slice(0, 3).map(r => r.innerText.replace(/\s+/g, ' '))
-         }));
-         return tables;
-      });
-      console.log('Megtalált táblázatok az oldalon:', JSON.stringify(pageInfo, null, 2));
-
-      await this.page.waitForSelector('.k-grid-content table tbody tr, table tbody tr', { timeout: 10000 });
-    } catch (e) {
-      console.log('Nem töltött be az Osztály Tanulói táblázat:', e.message);
-      return { data: [], fromCache: false };
-    }
-    
-    // Adatok kinyerése
-    let students = await this.page.$$eval('table tbody tr', rows => {
-       const results = [];
-       rows.forEach((row, index) => {
-          const cells = row.querySelectorAll('td');
-          if (cells.length === 1 && cells[0].innerText.includes('Nincs megjeleníthető')) return;
-          
-          if (cells.length >= 2) {
-             results.push({
-                name: cells[1] ? cells[1].innerText.trim() : (cells[0] ? cells[0].innerText.trim() : 'Ismeretlen'),
-                rawData: Array.from(cells).map(c => c.innerText.trim())
-             });
-          }
-       });
-       return results;
-    });
-    
-    // Szűrés duplikációk ellen (Kendo grid fagyasztott oszlopok miatt kétszer szerepelhetnek a sorok)
-    const uniqueStudentsMap = new Map();
-    students.forEach(s => {
-       if (s.name && s.name !== 'Ismeretlen') {
-          if (!uniqueStudentsMap.has(s.name) || s.rawData.length > uniqueStudentsMap.get(s.name).rawData.length) {
-             uniqueStudentsMap.set(s.name, s);
-          }
-       }
-    });
-    students = Array.from(uniqueStudentsMap.values());
-
-    // Próbáljuk meg kitalálni az osztályfőnöki osztályt (amelyik osztályba a legtöbben járnak ezen a listán)
-    // Az osztály neve a 7. oszlopban van általában (index 7).
-    const classCounts = {};
-    students.forEach(s => {
-       const className = s.rawData.length >= 8 ? s.rawData[7] : null;
-       if (className && className.trim() !== '') {
-          classCounts[className] = (classCounts[className] || 0) + 1;
-       }
-    });
-    
-    let mainClass = null;
-    let maxCount = 0;
-    for (const [cName, count] of Object.entries(classCounts)) {
-       if (count > maxCount) {
-          maxCount = count;
-          mainClass = cName;
-       }
-    }
-    
-    // Ha találtunk domináns osztályt, és a felhasználó az osztályfőnöki oldalon van, csak azt hagyjuk meg
-    if (mainClass && students.length > maxCount) {
-       console.log(`[Osztály szűrés] Fő osztályként azonosítva: ${mainClass}. A többi osztály tanulója elrejtve.`);
-       students = students.filter(s => s.rawData.length >= 8 && s.rawData[7] === mainClass);
-    }
-
-    // Újra sorszámozzuk az azonosítókat
-    students = students.map((s, index) => ({
-       id: `student_${index}`,
-       name: s.name,
-       rawData: s.rawData
-    }));
-    
-    console.log(`Kinyert tanulók száma: ${students.length}`);
-    this.saveCache({ students });
-    return { data: students, fromCache: false };
+    }); // _withLock vége
   }
 
   async getStudentsForClass(dayIndex, classIndex) {
@@ -857,7 +1392,7 @@ class KretaService {
     
     // Biztosítjuk, hogy az órarenden vagyunk
     if (!this.page.url().includes('TanariOrarend')) {
-       await this.page.goto('https://bmszc-neumann.e-kreta.hu/Orarend/TanariOrarend', { waitUntil: 'domcontentloaded' });
+       await this.page.goto(`https://${this.schoolId || 'bmszc-neumann'}.e-kreta.hu/Orarend/TanariOrarend`, { waitUntil: 'domcontentloaded' });
        await this.page.waitForSelector('.fc-time-grid', { timeout: 10000 });
        
        const todayDay = new Date().getDay();

@@ -1,0 +1,190 @@
+{
+  "widgetSettings": {
+    "showUpNext": false,
+    "showClassProgress": false,
+    "showVacationCountdown": true,
+    "showMessages": false,
+    "showQuickActions": false,
+    "showMiniCalendar": true,
+    "showMiniTimer": true,
+    "showTodos": true,
+    "showPostit": true,
+    "showQuote": true,
+    "showDigitalClock": true,
+    "showRandomStudent": true,
+    "showHabitTracker": false,
+    "autoFillGrid": false,
+    "habitName": "Vízivás (pohár)",
+    "habitType": "napi",
+    "habitDailyMax": 8,
+    "showBookmarks": true,
+    "showWeather": true,
+    "showHydrationTracker": true,
+    "showSmartNotification": true,
+    "hydrationTarget": 2000,
+    "editMode": false
+  },
+  "widgetSizes": {
+    "schedule": 2,
+    "digitalClock": 1,
+    "miniTimer": 1,
+    "todos": 1,
+    "miniCalendar": 1,
+    "vacation": 1,
+    "bookmarks": 2,
+    "quote": 2,
+    "postit": 1,
+    "weather": 1,
+    "hydrationTracker": 1,
+    "randomStudent": 1,
+    "smartNotification": 1,
+    "upNext": 1,
+    "classProgress": 1,
+    "messages": 1,
+    "quickActions": 1,
+    "habitTracker": 1
+  },
+  "widgetHeights": {
+    "schedule": 6,
+    "digitalClock": 1,
+    "miniTimer": 1,
+    "todos": 4,
+    "miniCalendar": 3,
+    "vacation": 1,
+    "bookmarks": 1,
+    "quote": 1,
+    "postit": 3,
+    "weather": 1,
+    "hydrationTracker": 1,
+    "randomStudent": 1,
+    "smartNotification": 1,
+    "upNext": 1,
+    "classProgress": 1,
+    "messages": 2,
+    "quickActions": 2,
+    "habitTracker": 2
+  },
+  "widgetPositions": {
+    "schedule": {
+      "c": 1,
+      "r": 1
+    },
+    "digitalClock": {
+      "c": 3,
+      "r": 1
+    },
+    "miniTimer": {
+      "c": 3,
+      "r": 2
+    },
+    "todos": {
+      "c": 3,
+      "r": 3
+    },
+    "miniCalendar": {
+      "c": 4,
+      "r": 1
+    },
+    "vacation": {
+      "c": 5,
+      "r": 1
+    },
+    "bookmarks": {
+      "c": 5,
+      "r": 2
+    },
+    "quote": {
+      "c": 5,
+      "r": 3
+    },
+    "postit": {
+      "c": 5,
+      "r": 4
+    },
+    "weather": {
+      "c": 6,
+      "r": 1
+    },
+    "hydrationTracker": {
+      "c": 6,
+      "r": 4
+    },
+    "randomStudent": {
+      "c": 6,
+      "r": 5
+    },
+    "smartNotification": {
+      "c": 6,
+      "r": 6
+    },
+    "messages": {
+      "c": 4,
+      "r": 4
+    },
+    "quickActions": {
+      "c": 4,
+      "r": 5
+    },
+    "habitTracker": {
+      "c": 4,
+      "r": 6
+    },
+    "upNext": {
+      "c": 3,
+      "r": 6
+    },
+    "classProgress": {
+      "c": 4,
+      "r": 6
+    }
+  },
+  "bookmarks": [
+    {
+      "url": "https://gemini.google.com",
+      "title": "Gemini"
+    },
+    {
+      "url": "https://youtube.com",
+      "title": "YouTube"
+    },
+    {
+      "url": "https://kahoot.com",
+      "title": "Kahoot"
+    },
+    {
+      "url": "https://quizlet.com",
+      "title": "Quizlet"
+    }
+  ],
+  "todos": [
+    {
+      "id": 1,
+      "text": "8.os bizonyítvány",
+      "done": false
+    },
+    {
+      "id": 2,
+      "text": "terem órarend nyomtatás",
+      "done": false
+    },
+    {
+      "id": 3,
+      "text": "tanulási piramis nyomtatása",
+      "done": false
+    },
+    {
+      "id": 4,
+      "text": "befizette pénzek az elmenőknek",
+      "done": false
+    },
+    {
+      "id": 5,
+      "text": "új listák nyomtatása",
+      "done": false
+    }
+  ],
+  "postit": "Ne felejtsd el feladni a pénteki leckét!",
+  "quoteType": "student",
+  "hydrationProgress": 0,
+  "isDarkTheme": false
+}

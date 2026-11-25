@@ -1,0 +1,17 @@
+{
+  "short_name": "Schola",
+  "name": "Schola — Digitális Tanári Műszerfal",
+  "description": "Intelligens tanári vezérlőpult, Kréta asszisztens, órarend és interaktív tantermi tábla",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "type": "image/svg+xml",
+      "sizes": "192x192 512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#090d16",
+  "theme_color": "#18181b",
+  "display": "standalone",
+  "orientation": "any"
+}

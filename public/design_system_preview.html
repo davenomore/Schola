@@ -1,0 +1,1953 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Schola — Bővített Design Döntési Varázsló (14 Kérdés & Élő Mentés)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* =========================================================================
+       DINAMIKUS SCHOLA CSS TOKENEK (A VÁLASZTÁSOK ALAPJÁN ÉLŐBEN VÁLTOZNAK)
+       ========================================================================= */
+    :root {
+      /* Döntés 1: Kártya lekerekítés */
+      --choice-card-radius: 10px;
+
+      /* Döntés 2: Fő akcentusszín */
+      --choice-accent: #e11d48;
+      --choice-accent-hover: #be123c;
+      --choice-accent-light: rgba(225, 29, 72, 0.08);
+
+      /* Döntés 3: Betűtípus */
+      --choice-font-family: 'Inter', sans-serif;
+
+      /* Döntés 4: Alap betűméret */
+      --choice-font-scale: 13px;
+
+      /* Döntés 5: Címsor stílus */
+      --choice-title-transform: uppercase;
+      --choice-title-size: 11px;
+      --choice-title-tracking: 1.2px;
+      --choice-title-weight: 600;
+
+      /* Döntés 6: Kártya árnyék és mélység */
+      --choice-card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.03);
+      --choice-card-hover-shadow: 0 6px 18px -2px rgba(0, 0, 0, 0.1);
+
+      /* Döntés 7: Gomb lekerekítés */
+      --choice-btn-radius: 8px;
+
+      /* Döntés 8: Ikon vonalvastagság */
+      --choice-icon-stroke: 1.8;
+
+      /* Döntés 9: Címkék & Badge-ek lekerekítése */
+      --choice-badge-radius: 6px;
+
+      /* Döntés 10: Folyamatban lévő óra blokk stílus */
+      --choice-banner-bg: #1c1c1e;
+      --choice-banner-text: #ffffff;
+      --choice-banner-border: transparent;
+
+      /* Döntés 11: Modális ablak lekerekítés */
+      --choice-modal-radius: 14px;
+
+      /* Döntés 12: Input mezők lekerekítése és fókusz */
+      --choice-input-radius: 8px;
+
+      /* Döntés 13: Érdemjegy indikátorok formája */
+      --choice-grade-radius: 50%;
+
+      /* Döntés 14: Háttértónus (Cool Zinc alap) */
+      --schola-bg-canvas: #f4f4f5;
+      --schola-bg-panel: #ffffff;
+      --schola-border: #e4e4e7;
+      --schola-border-strong: #d4d4d8;
+      --schola-text-primary: #18181b;
+      --schola-text-secondary: #71717a;
+      --schola-hover-bg: rgba(0, 0, 0, 0.03);
+      --schola-badge-bg: #18181b;
+      --schola-badge-color: #ffffff;
+      --schola-danger: #cc0000;
+    }
+
+    /* Sötét mód */
+    :root.dark-theme {
+      --schola-bg-canvas: #0a0a0c;
+      --schola-bg-panel: #121215;
+      --schola-border: #26262b;
+      --schola-border-strong: #3f3f46;
+      --schola-text-primary: #f4f4f5;
+      --schola-text-secondary: #8f8f98;
+      --schola-hover-bg: rgba(255, 255, 255, 0.04);
+      --schola-badge-bg: #ffffff;
+      --schola-badge-color: #0a0a0c;
+
+      --choice-card-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+      --choice-card-hover-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--choice-font-family);
+      font-size: var(--choice-font-scale);
+      background: var(--schola-bg-canvas);
+      color: var(--schola-text-primary);
+      -webkit-font-smoothing: antialiased;
+      transition: background-color 0.2s ease, color 0.2s ease;
+      padding-bottom: 90px;
+    }
+
+    /* Kétoszlopos elrendezés */
+    .split-layout {
+      display: grid;
+      grid-template-columns: 500px 1fr;
+      gap: 24px;
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 24px 20px;
+      align-items: flex-start;
+    }
+
+    @media (max-width: 1260px) {
+      .split-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* =========================================================================
+       BAL OLDAL: BŐVÍTETT DÖNTÉSI KÉRDÉSEK (14 KÉRDÉS)
+       ========================================================================= */
+    .decision-wizard-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .wizard-header {
+      background: var(--schola-bg-panel);
+      border: 1px solid var(--schola-border);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: var(--choice-card-shadow);
+    }
+
+    .wizard-header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .wizard-badge {
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: var(--choice-accent-light);
+      color: var(--choice-accent);
+      border: 1px solid var(--choice-accent);
+    }
+
+    .save-indicator-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #059669;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-top: 8px;
+    }
+
+    .category-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--schola-text-secondary);
+      margin: 12px 0 4px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid var(--schola-border);
+    }
+
+    /* Kérdés Kártya */
+    .question-card {
+      background: var(--schola-bg-panel);
+      border: 1px solid var(--schola-border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      box-shadow: var(--choice-card-shadow);
+      transition: all 0.2s ease;
+    }
+
+    .question-title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .question-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--schola-text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .question-desc {
+      font-size: 12px;
+      color: var(--schola-text-secondary);
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    /* Választható Opciók Listája */
+    .options-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .option-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 9px 12px;
+      border: 1.5px solid var(--schola-border);
+      border-radius: 8px;
+      background: var(--schola-bg-panel);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .option-item:hover {
+      border-color: var(--schola-border-strong);
+      background: var(--schola-hover-bg);
+    }
+
+    .option-item.selected {
+      border-color: var(--choice-accent);
+      background: var(--choice-accent-light);
+    }
+
+    .option-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .radio-circle {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      border: 2px solid var(--schola-border-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+    }
+
+    .option-item.selected .radio-circle {
+      border-color: var(--choice-accent);
+      background: var(--choice-accent);
+    }
+
+    .radio-circle::after {
+      content: '';
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #ffffff;
+      opacity: 0;
+      transition: opacity 0.15s ease;
+    }
+
+    .option-item.selected .radio-circle::after {
+      opacity: 1;
+    }
+
+    .option-label {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--schola-text-primary);
+    }
+
+    .option-subtext {
+      font-size: 11px;
+      color: var(--schola-text-secondary);
+      display: block;
+      margin-top: 2px;
+    }
+
+    .rec-badge {
+      font-size: 9.5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(16, 185, 129, 0.12);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      white-space: nowrap;
+    }
+
+    /* =========================================================================
+       JOBB OLDAL: ÉLŐ SCHOLA KÉPERNYŐ ELŐNÉZET (VALÓS ELEMEKKEL)
+       ========================================================================= */
+    .live-preview-wrapper {
+      position: sticky;
+      top: 20px;
+    }
+
+    .preview-header-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .preview-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--schola-text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .preview-pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+
+    .schola-window {
+      background: var(--schola-bg-canvas);
+      border: 1px solid var(--schola-border);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12);
+      display: flex;
+      min-height: 720px;
+    }
+
+    /* Schola Eredeti Oldalsáv */
+    .schola-sidebar {
+      width: 220px;
+      background: var(--schola-bg-panel);
+      border-right: 1px solid var(--schola-border);
+      padding: 20px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      flex-shrink: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sidebar-toggle {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--schola-border);
+      background: transparent;
+      color: var(--schola-text-secondary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .nav-links {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .nav-item {
+      padding: 8px 10px;
+      color: var(--schola-text-secondary);
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      border-radius: var(--choice-btn-radius);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .nav-item:hover {
+      background: var(--schola-hover-bg);
+      color: var(--schola-text-primary);
+    }
+
+    .nav-item.active {
+      background: var(--choice-accent);
+      color: #ffffff;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .user-profile {
+      margin-top: auto;
+      padding-top: 14px;
+      border-top: 1px solid var(--schola-border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--schola-badge-bg);
+      color: var(--schola-badge-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 13px;
+      flex-shrink: 0;
+    }
+
+    /* Schola Tartalmi Terület */
+    .schola-content {
+      flex: 1;
+      padding: 18px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    /* Valós Komponens: Smart Banner */
+    .smart-banner {
+      padding: 10px 14px;
+      background: var(--schola-bg-panel);
+      border: 1px solid var(--schola-border);
+      border-left: 4px solid var(--choice-accent);
+      border-radius: var(--choice-card-radius);
+      box-shadow: var(--choice-card-shadow);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    /* Schola Kártyák (Órarend, Időzítő, Dolgozat) */
+    .schola-card {
+      background: var(--schola-bg-panel);
+      border: 1px solid var(--schola-border);
+      border-radius: var(--choice-card-radius);
+      box-shadow: var(--choice-card-shadow);
+      padding: 16px;
+      transition: all 0.2s ease;
+    }
+
+    .schola-card:hover {
+      box-shadow: var(--choice-card-hover-shadow);
+    }
+
+    .card-title {
+      font-size: var(--choice-title-size);
+      font-weight: var(--choice-title-weight);
+      letter-spacing: var(--choice-title-tracking);
+      text-transform: var(--choice-title-transform);
+      color: var(--schola-text-secondary);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Órarend Naptár elemek */
+    .calendar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 8px;
+    }
+
+    .calendar-title {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--schola-text-primary);
+    }
+
+    .days-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .day-selector {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .day-selector:hover:not(.active) {
+      background: var(--schola-hover-bg);
+    }
+
+    .day-selector.active {
+      background: var(--choice-accent);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+
+    .day-name { font-size: 10px; opacity: 0.8; }
+    .day-date { font-size: 12.5px; font-weight: 600; margin-top: 1px; }
+
+    /* Órarendi sorok */
+    .schedule-item {
+      display: grid;
+      grid-template-columns: 46px 1fr auto;
+      align-items: center;
+      padding: 6px 10px;
+      background: var(--schola-bg-panel);
+      border: 1px solid var(--schola-border);
+      border-radius: calc(var(--choice-card-radius) * 0.7);
+      margin-bottom: 4px;
+      transition: all 0.15s ease;
+    }
+
+    .schedule-item:hover {
+      border-color: var(--schola-border-strong);
+    }
+
+    .schedule-item.active {
+      border-color: var(--choice-accent);
+      background: var(--choice-accent-light);
+    }
+
+    .room-badge {
+      padding: 2px 7px;
+      border: 1px solid var(--schola-border);
+      border-radius: var(--choice-badge-radius);
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    /* Gombok a felületen */
+    .schola-btn {
+      font-family: var(--choice-font-family);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 12px;
+      border-radius: var(--choice-btn-radius);
+      border: 1px solid transparent;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-outline {
+      background: transparent;
+      border-color: var(--schola-border);
+      color: var(--schola-text-primary);
+    }
+    .btn-outline:hover {
+      border-color: var(--schola-border-strong);
+      background: var(--schola-hover-bg);
+    }
+
+    .btn-primary {
+      background: var(--choice-accent);
+      color: #ffffff;
+      border-color: var(--choice-accent);
+    }
+    .btn-primary:hover {
+      background: var(--choice-accent-hover);
+    }
+
+    /* Érdemjegy pill-ek */
+    .grade-chip {
+      width: 24px;
+      height: 24px;
+      border-radius: var(--choice-grade-radius);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 12px;
+    }
+
+    /* Beviteli mező */
+    .schola-input {
+      font-family: var(--choice-font-family);
+      font-size: 12px;
+      padding: 7px 10px;
+      background: var(--schola-bg-panel);
+      border: 1px solid var(--schola-border);
+      border-radius: var(--choice-input-radius);
+      color: var(--schola-text-primary);
+      width: 100%;
+      outline: none;
+      transition: all 0.15s ease;
+    }
+    .schola-input:focus {
+      border-color: var(--choice-accent);
+      box-shadow: 0 0 0 3px var(--choice-accent-light);
+    }
+
+    /* Modál Ablak Előnézet */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.45);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+
+    .modal-window {
+      width: 440px;
+      background: var(--schola-bg-panel);
+      border: 1px solid var(--schola-border);
+      border-radius: var(--choice-modal-radius);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+      overflow: hidden;
+      animation: modalFade 0.18s ease;
+    }
+    @keyframes modalFade {
+      0% { opacity: 0; transform: scale(0.96); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    /* Alsó Sticky Export Sáv */
+    .sticky-export-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--schola-bg-panel);
+      border-top: 1px solid var(--schola-border);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 999;
+      box-shadow: 0 -4px 16px rgba(0,0,0,0.08);
+      backdrop-filter: blur(8px);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="split-layout">
+    
+    <!-- =====================================================================
+         BAL OLDAL: 14 DÖNTÉSI KÉRDÉS NÉGY LOGIKUS CSOPORTRA BONTVA
+         ===================================================================== -->
+    <div class="decision-wizard-panel">
+      
+      <div class="wizard-header">
+        <h1>
+          <span>Schola Design Varázsló</span>
+          <span class="wizard-badge">14 Kérdés & Élő Mentés</span>
+        </h1>
+        <p>
+          Bővített döntéstámogató rendszer az összes kérdéses komponenshez.
+          Minden egyes választásodat <strong>azonnal és automatikusan elmentjük a böngésződben</strong>,
+          így újratöltéskor sem vesznek el!
+        </p>
+        <div class="save-indicator-badge">
+          <span>✓</span> Válaszaid automatikusan mentve a böngésződben (localStorage)
+        </div>
+        <div style="margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap;">
+          <button class="schola-btn btn-primary" onclick="applyAllRecommendations()">
+            ✨ Mind a 14 fejlesztői javaslat betöltése
+          </button>
+          <button class="schola-btn btn-outline" onclick="toggleTheme()">
+            <span id="theme-btn-icon">🌙</span> Sötét / Világos mód
+          </button>
+          <button class="schola-btn btn-outline" onclick="openSampleModal()">
+            🪟 Minta Modál megnyitása
+          </button>
+        </div>
+      </div>
+
+      <!-- I. CSOPORT: ALAPGEOMETRIA & LEKEREKÍTÉSEK -->
+      <div class="category-divider">I. Alapgeometria & Lekerekítések</div>
+
+      <!-- 1. KÉRDÉS: KÁRTYÁK LEKEREKÍTÉSE -->
+      <div class="question-card" id="q-card-radius">
+        <div class="question-title-row">
+          <div class="question-title">1. Kártyák és Widgetek Lekerekítése (Card Radius)</div>
+          <span class="rec-badge">10px az ajánlott</span>
+        </div>
+        <div class="question-desc">Milyen formájúak legyenek a főbb panelek és dobozok sarkai?</div>
+        
+        <div class="options-grid">
+          <div class="option-item" onclick="chooseCardRadius('0px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">0px — Eredeti szögletes (Kréta örökség)</span>
+                <span class="option-subtext">A jelenlegi éles sarokforma</span>
+              </div>
+            </div>
+          </div>
+          <div class="option-item" onclick="chooseCardRadius('6px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">6px — Enyhe mikrogömbölyítés (Sharp Modern)</span>
+                <span class="option-subtext">Visszafogott, precíz mérnöki megjelenés</span>
+              </div>
+            </div>
+          </div>
+          <div class="option-item selected" onclick="chooseCardRadius('10px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">10px — Kiegyensúlyozott Modern (Linear / Apple SaaS)</span>
+                <span class="option-subtext">Optimális: professzionális, esztétikus, semleges</span>
+              </div>
+            </div>
+            <span class="rec-badge">Javaslatunk</span>
+          </div>
+          <div class="option-item" onclick="chooseCardRadius('16px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">16px — Lágy, kifejezetten kerekded (Soft)</span>
+                <span class="option-subtext">Nagyon barátságos forma</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. KÉRDÉS: GOMBOK FORMÁJA -->
+      <div class="question-card" id="q-btn-radius">
+        <div class="question-title-row">
+          <div class="question-title">2. Gombok Lekerekítése & Formája (Button Radius)</div>
+          <span class="rec-badge">8px az ajánlott</span>
+        </div>
+        <div class="question-desc">Milyen formájúak legyenek a kattintható műveleti gombok?</div>
+
+        <div class="options-grid">
+          <div class="option-item" onclick="chooseBtnRadius('4px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">4px — Szögletesebb gombok</span>
+                <span class="option-subtext">Klasszikus szoftverforma</span>
+              </div>
+            </div>
+          </div>
+          <div class="option-item selected" onclick="chooseBtnRadius('8px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">8px — Kártyához illeszkedő Balanced forma</span>
+                <span class="option-subtext">Harmonizál a 10px-es kártyákkal</span>
+              </div>
+            </div>
+            <span class="rec-badge">Javaslatunk</span>
+          </div>
+          <div class="option-item" onclick="chooseBtnRadius('9999px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">Kapszula / Pill (9999px — Teljesen kerekített)</span>
+                <span class="option-subtext">Játékosabb, lekerekített gombok</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9. KÉRDÉS: CÍMKÉK ÉS BADGE-EK LEKEREKÍTÉSE -->
+      <div class="question-card" id="q-badge-radius">
+        <div class="question-title-row">
+          <div class="question-title">3. Címkék & Badge-ek Lekerekítése (Terem, Típus stb.)</div>
+          <span class="rec-badge">6px az ajánlott</span>
+        </div>
+        <div class="question-desc">Milyen formájú legyen a teremkód (pl. 102) és a dolgozattípus (Témazáró) címkéje?</div>
+
+        <div class="options-grid">
+          <div class="option-item" onclick="chooseBadgeRadius('2px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">2px — Szinte szögletes (Jelenlegi állapot)</span>
+                <span class="option-subtext">A jelenlegi kód éles teremjelvényei</span>
+              </div>
+            </div>
+          </div>
+          <div class="option-item selected" onclick="chooseBadgeRadius('6px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">6px — Lágyan kerekített (Modern Tag)</span>
+                <span class="option-subtext">Finom, professzionális címkék</span>
+              </div>
+            </div>
+            <span class="rec-badge">Javaslatunk</span>
+          </div>
+          <div class="option-item" onclick="chooseBadgeRadius('9999px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">Kapszula (9999px — Ovális Pill)</span>
+                <span class="option-subtext">Kerekített státuszjelvények</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- II. CSOPORT: SZÍNEK, TÓNUSOK & HANGSÚLYOK -->
+      <div class="category-divider">II. Színek, Tónusok & Hangsúlyok</div>
+
+      <!-- 2. KÉRDÉS: AKCENTUSSZÍN -->
+      <div class="question-card" id="q-accent-color">
+        <div class="question-title-row">
+          <div class="question-title">4. Fő Akcentusszín & Arculati Hangsúly</div>
+          <span class="rec-badge">Schola Crimson az ajánlott</span>
+        </div>
+        <div class="question-desc">Mi legyen az aktív menüpontok és a kijelölt órák vezérszíne?</div>
+
+        <div class="options-grid">
+          <div class="option-item selected" onclick="chooseAccent('#e11d48', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: #e11d48; display: inline-block;"></span>
+                <div>
+                  <span class="option-label">Schola Crimson (#e11d48) — A logó pötty színe</span>
+                  <span class="option-subtext">100%-os harmónia a SCHOLA logóval (a logó pontja is követi)</span>
+                </div>
+              </div>
+            </div>
+            <span class="rec-badge">Javaslatunk</span>
+          </div>
+          <div class="option-item" onclick="chooseAccent('#cc0000', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: #cc0000; display: inline-block;"></span>
+                <div>
+                  <span class="option-label">Kréta Red (#cc0000) — Iskolai vörös</span>
+                  <span class="option-subtext">A jelenlegi megszokott Kréta-piros</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="option-item" onclick="chooseAccent('#4f46e5', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: #4f46e5; display: inline-block;"></span>
+                <div>
+                  <span class="option-label">Schola Indigo (#4f46e5) — Mély kobaltkék</span>
+                  <span class="option-subtext">Szemkímélő, nyugodt tudományos légkör</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="option-item" onclick="chooseAccent('#18181b', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="width: 14px; height: 14px; border-radius: 50%; background: #18181b; display: inline-block;"></span>
+                <div>
+                  <span class="option-label">Monokróm Slate (#18181b)</span>
+                  <span class="option-subtext">Színsemleges fekete-fehér</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10. KÉRDÉS: FOLYAMATBAN LÉVŐ ÓRA BLOKK HÁTTERE AZ ÓRARENDBEN -->
+      <div class="question-card" id="q-live-banner">
+        <div class="question-title-row">
+          <div class="question-title">5. Folyamatban lévő Óra Kiemelése az Órarendben</div>
+          <span class="rec-badge">Sötét doboz az ajánlott</span>
+        </div>
+        <div class="question-desc">Hogyan jelenjen meg az Órarend widget tetején az aktuális óra számlálója?</div>
+
+        <div class="options-grid">
+          <div class="option-item selected" onclick="chooseLiveBanner('dark', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">Mindig Sötét blokk (#1c1c1e) — Jelenlegi kód</span>
+                <span class="option-subtext">Nagy kontrasztú, azonnal vonzza a szemet a táblán</span>
+              </div>
+            </div>
+            <span class="rec-badge">Javaslatunk</span>
+          </div>
+          <div class="option-item" onclick="chooseLiveBanner('tinted', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">Finom Akcentusos háttér (Áttetsző Crimson/Piros)</span>
+                <span class="option-subtext">Lágyabb, belesimul a fehér kártyába</span>
+              </div>
+            </div>
+          </div>
+          <div class="option-item" onclick="chooseLiveBanner('outline', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">Minimalista Keretes (Nincs sötét tömb)</span>
+                <span class="option-subtext">Egyszerű 1px-es kiemelő keret</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 14. KÉRDÉS: HÁTTÉRTÓNUS ÉS FELÜLETI HANGULAT -->
+      <div class="question-card" id="q-surface-tone">
+        <div class="question-title-row">
+          <div class="question-title">6. Háttértónus és Alapfelület (Canvas Tone)</div>
+          <span class="rec-badge">Cool Zinc az ajánlott</span>
+        </div>
+        <div class="question-desc">Milyen árnyalatú legyen a képernyő legalsó háttere?</div>
+
+        <div class="options-grid">
+          <div class="option-item selected" onclick="chooseSurfaceTone('zinc', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">Cool Zinc (#f4f4f5 / Sötétben #0a0a0c)</span>
+                <span class="option-subtext">Modern SaaS hűvös törtfehér szürke (Jelenlegi Schola alap)</span>
+              </div>
+            </div>
+            <span class="rec-badge">Javaslatunk</span>
+          </div>
+          <div class="option-item" onclick="chooseSurfaceTone('paper', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">Warm Paper (#fafaf9 / Meleg sötétszürke)</span>
+                <span class="option-subtext">Melegebb, természetes papír-hatású tónusok</span>
+              </div>
+            </div>
+          </div>
+          <div class="option-item" onclick="chooseSurfaceTone('pure', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">High-Contrast Pure (#ffffff / #000000)</span>
+                <span class="option-subtext">Tiszta fehér háttér szürke árnyalatok nélkül</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- III. CSOPORT: TIPOGRÁFIA & MÉRETEZÉS -->
+      <div class="category-divider">III. Tipográfia & Méretezés</div>
+
+      <!-- 3. KÉRDÉS: BETŰTÍPUS -->
+      <div class="question-card" id="q-font-family">
+        <div class="question-title-row">
+          <div class="question-title">7. Betűtípus (Typography / Font Family)</div>
+          <span class="rec-badge">Inter az ajánlott</span>
+        </div>
+        <div class="question-desc">Milyen betűcsaláddal jelenjenek meg a feliratok és adatok?</div>
+
+        <div class="options-grid">
+          <div class="option-item selected" onclick="chooseFontFamily('Inter', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label" style="font-family: 'Inter', sans-serif;">Inter (A jelenlegi bevált UI betűtípus)</span>
+                <span class="option-subtext">Sűrű adatokra és kijelzőkre optimalizált</span>
+              </div>
+            </div>
+            <span class="rec-badge">Javaslatunk</span>
+          </div>
+          <div class="option-item" onclick="chooseFontFamily('Plus Jakarta Sans', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label" style="font-family: 'Plus Jakarta Sans', sans-serif;">Plus Jakarta Sans (Karakteresebb, kerekebb)</span>
+                <span class="option-subtext">Modern európai geometriai dizájn</span>
+              </div>
+            </div>
+          </div>
+          <div class="option-item" onclick="chooseFontFamily('System', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label" style="font-family: -apple-system, BlinkMacSystemFont, sans-serif;">Native System Font (-apple-system / Segoe UI)</span>
+                <span class="option-subtext">Operációs rendszer beépített betűje</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. KÉRDÉS: BETŰMÉRET -->
+      <div class="question-card" id="q-font-size">
+        <div class="question-title-row">
+          <div class="question-title">8. Alap Betűméret & Információsűrűség</div>
+          <span class="rec-badge">13px az ajánlott</span>
+        </div>
+        <div class="question-desc">Mekkora legyen a szövegek alapmérete az órarendben és a táblázatokban?</div>
+
+        <div class="options-grid">
+          <div class="option-item" onclick="chooseFontSize('12px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">12px — Kompakt / Nagy adatsűrűség</span>
+                <span class="option-subtext">Több diák és tanóra fér el egyszerre</span>
+              </div>
+            </div>
+          </div>
+          <div class="option-item selected" onclick="chooseFontSize('13px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">13px — Kiegyensúlyozott (Schola Standard)</span>
+                <span class="option-subtext">Laptopon és kivetítőn egyaránt kényelmes</span>
+              </div>
+            </div>
+            <span class="rec-badge">Javaslatunk</span>
+          </div>
+          <div class="option-item" onclick="chooseFontSize('14px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">14px — Nagyobb méret (Kényelmes olvasás)</span>
+                <span class="option-subtext">Nagyobb betűk távoli nézéshez</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. KÉRDÉS: CÍMSOROK STÍLUSA -->
+      <div class="question-card" id="q-title-style">
+        <div class="question-title-row">
+          <div class="question-title">9. Kártyafejlécek Stílusa (.card-title)</div>
+          <span class="rec-badge">Csupa nagybetűs az ajánlott</span>
+        </div>
+        <div class="question-desc">Hogyan jelenjenek meg a kártyák címei (pl. ÓRAREND, IDŐZÍTŐ)?</div>
+
+        <div class="options-grid">
+          <div class="option-item selected" onclick="chooseTitleStyle('uppercase', '11px', '1.2px', '600', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label" style="text-transform: uppercase; font-size: 11px; letter-spacing: 1.2px; font-weight: 600;">ÓRAREND — Csupa nagybetűs, tág betűközzel (11px)</span>
+                <span class="option-subtext">A Schola jelenlegi jellegzetes védjegye (Megtartandó!)</span>
+              </div>
+            </div>
+            <span class="rec-badge">Javaslatunk</span>
+          </div>
+          <div class="option-item" onclick="chooseTitleStyle('none', '14px', '-0.01em', '700', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label" style="text-transform: none; font-size: 14px; font-weight: 700;">Órarend — Kis- és nagybetűs félkövér (14px)</span>
+                <span class="option-subtext">Hétköznapibb megjelenés</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IV. CSOPORT: IKONOK, FORMOK, MODÁLOK & ÉRDEMJEGYEK -->
+      <div class="category-divider">IV. Ikonok, Formok, Modálok & Érdemjegyek</div>
+
+      <!-- 8. KÉRDÉS: IKONOK VONALVASTAGSÁGA -->
+      <div class="question-card" id="q-icon-stroke">
+        <div class="question-title-row">
+          <div class="question-title">10. Ikonok Vonalvastagsága & Stílusa (Icon Stroke)</div>
+          <span class="rec-badge">1.8px az ajánlott</span>
+        </div>
+        <div class="question-desc">Milyen vastagságúak legyenek az oldalsáv és az akciógombok ikonjai?</div>
+
+        <div class="options-grid">
+          <div class="option-item" onclick="chooseIconStroke('1.5', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">1.5px — Finom vonalas (Subtle Light)</span>
+                <span class="option-subtext">Légies, modern minimál stílus</span>
+              </div>
+            </div>
+          </div>
+          <div class="option-item selected" onclick="chooseIconStroke('1.8', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">1.8px — Normál vonalas (Schola Standard)</span>
+                <span class="option-subtext">A jelenlegi menüikonok bevált vastagsága, projektoron is tiszta</span>
+              </div>
+            </div>
+            <span class="rec-badge">Javaslatunk</span>
+          </div>
+          <div class="option-item" onclick="chooseIconStroke('2.2', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">2.2px — Karakteres vastag vonal (Bold)</span>
+                <span class="option-subtext">Hangsúlyos ikonok, távolról is azonnal felismerhető</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6. KÉRDÉS: KÁRTYA ÁRNYÉK -->
+      <div class="question-card" id="q-elevation">
+        <div class="question-title-row">
+          <div class="question-title">11. Kártyák Mélysége & Árnyéka (Elevation)</div>
+          <span class="rec-badge">Mikró-árnyék az ajánlott</span>
+        </div>
+        <div class="question-desc">Hogyan váljanak el a fehér/sötét panelek a háttértől?</div>
+
+        <div class="options-grid">
+          <div class="option-item" onclick="chooseElevation('none', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">Tiszta Flat (Csak 1px keret, 0 árnyék)</span>
+                <span class="option-subtext">Teljesen lapos felületek</span>
+              </div>
+            </div>
+          </div>
+          <div class="option-item selected" onclick="chooseElevation('subtle', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">Finom Mikró-árnyék (1px keret + leheletnyi mélység)</span>
+                <span class="option-subtext">Elegáns elválás a szürke háttértől</span>
+              </div>
+            </div>
+            <span class="rec-badge">Javaslatunk</span>
+          </div>
+          <div class="option-item" onclick="chooseElevation('raised', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">Kiemelkedő Lebegő Kártyák</span>
+                <span class="option-subtext">Erősebb 3D rétegződés</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 11. KÉRDÉS: MODÁLIS ABLAKOK -->
+      <div class="question-card" id="q-modal-style">
+        <div class="question-title-row">
+          <div class="question-title">12. Modális Ablakok Stílusa (Popups & Dialogs)</div>
+          <span class="rec-badge">14px + Blur az ajánlott</span>
+        </div>
+        <div class="question-desc">Milyen formában nyíljanak meg az űrlapok (pl. Új dolgozat, Beállítások)?</div>
+
+        <div class="options-grid">
+          <div class="option-item" onclick="chooseModalStyle('0px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">0px — Szögletes doboz (Jelenlegi állapot a kódban)</span>
+                <span class="option-subtext">Az Exams.jsx-ben lévő manuális felvitel formátuma</span>
+              </div>
+            </div>
+          </div>
+          <div class="option-item selected" onclick="chooseModalStyle('14px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">14px — Lekerekített + Finom Backdrop Blur</span>
+                <span class="option-subtext">Modern SaaS felugró ablak sötétített elmosott háttérrel</span>
+              </div>
+            </div>
+            <span class="rec-badge">Javaslatunk</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 12. KÉRDÉS: BEVITELI MEZŐK & KERESŐK -->
+      <div class="question-card" id="q-input-style">
+        <div class="question-title-row">
+          <div class="question-title">13. Beviteli Mezők & Keresők (Input Fields)</div>
+          <span class="rec-badge">8px + Fókuszgyűrű az ajánlott</span>
+        </div>
+        <div class="question-desc">Hogyan viselkedjenek a keresők és a dátummezők kattintáskor?</div>
+
+        <div class="options-grid">
+          <div class="option-item selected" onclick="chooseInputStyle('8px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">8px — Finom keret + Akcentus színű fókuszgyűrű</span>
+                <span class="option-subtext">Aktiváláskor finom crimson/piros fénykeret</span>
+              </div>
+            </div>
+            <span class="rec-badge">Javaslatunk</span>
+          </div>
+          <div class="option-item" onclick="chooseInputStyle('4px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">4px — Egyszerű szögletes keret</span>
+                <span class="option-subtext">Alapértelmezett HTML mező stílus</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 13. KÉRDÉS: ÉRDEMJEGY INDIKÁTOROK (1-5 SKÁLA) -->
+      <div class="question-card" id="q-grade-style">
+        <div class="question-title-row">
+          <div class="question-title">14. Érdemjegy Indikátorok Formája (Jegyek: 5, 4, 3, 2, 1)</div>
+          <span class="rec-badge">Kör az ajánlott</span>
+        </div>
+        <div class="question-desc">Milyen alakzatban jelenjenek meg a tanulói érdemjegyek a naplóban és a dolgozatnál?</div>
+
+        <div class="options-grid">
+          <div class="option-item selected" onclick="chooseGradeStyle('50%', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">Kör alakú színes pontok (50% kerekítés)</span>
+                <span class="option-subtext">Gyorsan átlátható, nem zavarja az olvasást (1: Zöld, 2: Kék, 3: Sárga, stb.)</span>
+              </div>
+            </div>
+            <span class="rec-badge">Javaslatunk</span>
+          </div>
+          <div class="option-item" onclick="chooseGradeStyle('4px', this)">
+            <div class="option-left">
+              <div class="radio-circle"></div>
+              <div>
+                <span class="option-label">Kerekített négyzetek (4px rádiusz)</span>
+                <span class="option-subtext">Kocka formájú jegy-indikátorok</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+
+    <!-- =====================================================================
+         JOBB OLDAL: ÉLŐ SCHOLA KÉPERNYŐ ELŐNÉZET (VALÓS ELEMEKKEL)
+         ===================================================================== -->
+    <div class="live-preview-wrapper">
+      
+      <div class="preview-header-bar">
+        <div class="preview-title">
+          <span class="preview-pulse-dot"></span>
+          <span>Élő Schola Előnézet (Valós Elemekkel)</span>
+        </div>
+        <div style="font-size: 11px; color: var(--schola-text-secondary);">
+          Minden bal oldali kattintás azonnal itt látható ↴
+        </div>
+      </div>
+
+      <!-- Schola szimulált ablak -->
+      <div class="schola-window">
+        
+        <!-- 1. OLDALSÁV (Sidebar.jsx 1:1) -->
+        <aside class="schola-sidebar">
+          <div class="brand">
+            <div class="brand-left">
+              <svg width="22" height="22" viewBox="0 0 128 128" fill="none" style="flex-shrink: 0; border-radius: 6px;">
+                <rect width="128" height="128" rx="28" fill="#0A0A0C" />
+                <rect x="1" y="1" width="126" height="126" rx="27" stroke="rgba(255, 255, 255, 0.18)" stroke-width="2" />
+                <path d="M80 44 C80 34.5 71.5 28 58 28 C43 28 34 37 34 48 C34 61 46 65 64 69 C79 72.5 86 78 86 89 C86 101.5 73.5 108 56 108 C40 108 32 99.5 32 89" stroke="#FFFFFF" stroke-width="11" stroke-linecap="round" stroke-linejoin="round" />
+                <circle cx="90" cy="36" r="6.5" id="svg-logo-dot" fill="var(--choice-accent)" />
+              </svg>
+              <span style="font-weight: 700; letter-spacing: 2px; font-size: 14px;">SCHOLA</span>
+            </div>
+            <button class="sidebar-toggle">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="var(--choice-icon-stroke)"><path d="M15 18l-6-6 6-6"/></svg>
+            </button>
+          </div>
+
+          <nav class="nav-links">
+            <div class="nav-item active" onclick="highlightNav(this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="var(--choice-icon-stroke)"><rect width="7" height="9" x="3" y="3" rx="1.5"/><rect width="7" height="5" x="14" y="3" rx="1.5"/><rect width="7" height="9" x="14" y="12" rx="1.5"/><rect width="7" height="5" x="3" y="16" rx="1.5"/></svg>
+              <span>Vezérlőpult</span>
+            </div>
+            <div class="nav-item" onclick="highlightNav(this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="var(--choice-icon-stroke)"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+              <span>Üzenetek</span>
+            </div>
+            <div class="nav-item" onclick="highlightNav(this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="var(--choice-icon-stroke)"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+              <span style="display: flex; justify-content: space-between; width: 100%;">
+                <span>Értesítések</span>
+                <span style="padding: 1px 6px; border-radius: 10px; background: var(--choice-accent); color: #fff; font-size: 10px; font-weight: 700;">2</span>
+              </span>
+            </div>
+            <div class="nav-item" onclick="highlightNav(this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="var(--choice-icon-stroke)"><rect width="18" height="18" x="3" y="4" rx="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+              <span>Órarend</span>
+            </div>
+            <div class="nav-item" onclick="highlightNav(this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="var(--choice-icon-stroke)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><path d="m9 15 2 2 4-4"/></svg>
+              <span>Dolgozat Radar</span>
+            </div>
+            <div class="nav-item" onclick="highlightNav(this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="var(--choice-icon-stroke)"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+              <span>Osztályfőnök</span>
+            </div>
+            <div class="nav-item" onclick="highlightNav(this)">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="var(--choice-icon-stroke)"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+              <span>Tanári Eszközök</span>
+            </div>
+          </nav>
+
+          <div class="user-profile">
+            <div class="avatar">VD</div>
+            <div style="flex: 1; overflow: hidden;">
+              <div style="font-weight: 600; font-size: 13px;">Varga Dávid</div>
+              <div style="font-size: 11px; color: var(--schola-text-secondary);">Osztályfőnök - 11.A</div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- 2. TARTALMI FELÜLET (Órarend, Időzítő, Dolgozat Kártya, Inputok) -->
+        <main class="schola-content">
+          
+          <!-- Keresőmező és Műveleti Sáv (Input teszteléshez) -->
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="text" class="schola-input" placeholder="🔍 Keresés a diákok, osztályok és tanórák között...">
+            <button class="schola-btn btn-primary" onclick="openSampleModal()">+ Új dolgozat</button>
+          </div>
+
+          <!-- Értesítési Sáv -->
+          <div class="smart-banner">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span style="font-size: 16px;">⚠️</span>
+              <div style="font-size: 12px;">
+                <strong>Hiányzás Riasztás:</strong> Kovács Bence (11.A) elérte a <strong>240 óra</strong> hiányzást.
+              </div>
+            </div>
+            <button class="schola-btn btn-outline" style="padding: 4px 10px; font-size: 11px;">Részletek</button>
+          </div>
+
+          <!-- Kétoszlopos Widget Elrendezés -->
+          <div style="display: grid; grid-template-columns: 310px 1fr; gap: 14px;">
+            
+            <!-- ÓRAREND WIDGET (ScheduleWidget.jsx 1:1) -->
+            <div class="schola-card">
+              <div class="card-title">
+                <span>ÓRAREND</span>
+                <span style="font-size: 10px; opacity: 0.7;">Kréta Élő</span>
+              </div>
+
+              <!-- Folyamatban lévő óra blokk (Döntés 10 alapján változik a stílusa!) -->
+              <div id="live-lesson-banner" style="background: var(--choice-banner-bg); color: var(--choice-banner-text); border: 1px solid var(--choice-banner-border); border-radius: calc(var(--choice-card-radius) * 0.6); padding: 12px; margin-bottom: 12px;">
+                <div style="font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-bottom: 4px;">
+                  Folyamatban lévő tanóra
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 6px;">
+                  <span>2. óra (Matematika)</span>
+                  <span style="opacity: 0.85;">18 perc maradt</span>
+                </div>
+                <!-- Progress bar -->
+                <div style="width: 100%; height: 5px; background: rgba(128,128,128,0.25); border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
+                  <div style="width: 60%; height: 100%; background: var(--choice-accent);"></div>
+                </div>
+                <!-- Következő óra -->
+                <div style="border-top: 1px solid rgba(128,128,128,0.2); padding-top: 8px; display: flex; justify-content: space-between; align-items: center;">
+                  <div>
+                    <div style="font-size: 9px; opacity: 0.7; text-transform: uppercase;">Következik</div>
+                    <div style="font-size: 13px; font-weight: 700;">Fizika — Hőtan</div>
+                    <div style="font-size: 11px; opacity: 0.7;">10.B • 204. labor</div>
+                  </div>
+                  <div style="font-size: 16px; font-weight: 700;">12'</div>
+                </div>
+              </div>
+
+              <!-- Naptár hét -->
+              <div class="calendar-header">
+                <button class="schola-btn btn-outline" style="padding: 2px 6px; font-size: 11px;">‹</button>
+                <div class="calendar-title">2026. nov. - 48. hét (B)</div>
+                <button class="schola-btn btn-outline" style="padding: 2px 6px; font-size: 11px;">›</button>
+              </div>
+
+              <!-- Napválasztó napok -->
+              <div class="days-row">
+                <div class="day-selector" onclick="pickDay(this)"><span class="day-name">H</span><span class="day-date">23</span></div>
+                <div class="day-selector" onclick="pickDay(this)"><span class="day-name">K</span><span class="day-date">24</span></div>
+                <div class="day-selector active" onclick="pickDay(this)"><span class="day-name">Sze</span><span class="day-date">25</span></div>
+                <div class="day-selector" onclick="pickDay(this)"><span class="day-name">Cs</span><span class="day-date">26</span></div>
+                <div class="day-selector" onclick="pickDay(this)"><span class="day-name">P</span><span class="day-date">27</span></div>
+              </div>
+
+              <!-- Órarendi elemek -->
+              <div class="schedule-item">
+                <div style="font-size: 12px; font-weight: 600;">1. óra</div>
+                <div>
+                  <div style="font-weight: 600; font-size: 12.5px;">Matematika</div>
+                  <div style="font-size: 11px; color: var(--schola-text-secondary);">11.A • Varga Dávid</div>
+                </div>
+                <div class="room-badge">102</div>
+              </div>
+
+              <div class="schedule-item active">
+                <div style="font-size: 12px; font-weight: 600; color: var(--choice-accent);">2. óra</div>
+                <div>
+                  <div style="font-weight: 700; font-size: 12.5px;">Matematika (Emelt)</div>
+                  <div style="font-size: 11px; color: var(--schola-text-secondary);">11.A • Varga Dávid</div>
+                </div>
+                <div class="room-badge" style="border-color: var(--choice-accent); color: var(--choice-accent);">102</div>
+              </div>
+
+              <div class="schedule-item">
+                <div style="font-size: 12px; font-weight: 600;">3. óra</div>
+                <div>
+                  <div style="font-weight: 600; font-size: 12.5px;">Fizika</div>
+                  <div style="font-size: 11px; color: var(--schola-text-secondary);">10.B • Fizika labor</div>
+                </div>
+                <div class="room-badge">204</div>
+              </div>
+            </div>
+
+            <!-- JOBB OSZLOP: IDŐZÍTŐ + DOLGOZAT RADAR + ÉRDEMJEGYEK -->
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+              
+              <!-- Időzítő Widget -->
+              <div class="schola-card">
+                <div class="card-title">
+                  <span>IDŐZÍTŐ</span>
+                  <span style="font-size: 10px;">Órai munka</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <div style="font-size: 28px; font-weight: 700; font-family: 'JetBrains Mono', monospace; letter-spacing: 2px;">
+                    14:52
+                  </div>
+                  <div style="display: flex; gap: 6px;">
+                    <button class="schola-btn btn-outline">+5P</button>
+                    <button class="schola-btn btn-outline">+10P</button>
+                    <button class="schola-btn btn-primary">▶</button>
+                    <button class="schola-btn btn-outline" style="color: var(--schola-danger);">◼</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dolgozat Radar Kártya -->
+              <div class="schola-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span class="room-badge" style="background: rgba(225, 29, 72, 0.12); color: var(--choice-accent); border-color: transparent;">
+                    Témazáró Dolgozat
+                  </span>
+                  <span style="font-size: 11px; color: var(--schola-text-secondary);">2026. 11. 20. • 2. óra</span>
+                </div>
+
+                <div style="font-size: 14px; font-weight: 700; margin-bottom: 2px;">11.A • Matematika</div>
+                <div style="font-size: 12px; color: var(--schola-text-secondary); margin-bottom: 10px;">Trigonometria és szögfüggvények összegzése</div>
+
+                <!-- 15 napos határidő -->
+                <div style="padding: 8px 10px; border-radius: calc(var(--choice-card-radius) * 0.6); background: rgba(245, 158, 11, 0.1); border: 1px solid #f59e0b; color: #d97706; font-size: 11px; display: flex; flex-direction: column; gap: 3px;">
+                  <div style="font-weight: 700;">⚠️ Határidő: 4 munkanap múlva (2026. dec. 02.)</div>
+                  <div style="font-size: 10px; opacity: 0.9;">🏖️ Levonva: Őszi szünet (hivatalos szünet nem számít bele)</div>
+                </div>
+
+                <!-- Érdemjegyek tesztcsíkja (Döntés 13 alapján kör vagy négyzet) -->
+                <div style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
+                  <div style="display: flex; gap: 6px; align-items: center;">
+                    <span class="grade-chip" style="background: #10b98125; color: #10b981; border: 1px solid #10b98150;">5</span>
+                    <span class="grade-chip" style="background: #3b82f625; color: #3b82f6; border: 1px solid #3b82f650;">4</span>
+                    <span class="grade-chip" style="background: #f59e0b25; color: #f59e0b; border: 1px solid #f59e0b50;">3</span>
+                    <span class="grade-chip" style="background: #f9731625; color: #f97316; border: 1px solid #f9731650;">2</span>
+                    <span class="grade-chip" style="background: #ef444425; color: #ef4444; border: 1px solid #ef444450;">1</span>
+                  </div>
+                  <button class="schola-btn btn-primary" style="padding: 4px 10px; font-size: 11px;">Jegyek rögzítése</button>
+                </div>
+              </div>
+
+            </div>
+
+          </div>
+
+        </main>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- INTERAKTÍV MINTA MODAL A DÖNTÉS 11 TESZTELÉSÉRE -->
+  <div class="modal-overlay" id="sample-modal-overlay" onclick="closeSampleModal(event)">
+    <div class="modal-window">
+      <div style="padding: 14px 18px; border-bottom: 1px solid var(--schola-border); display: flex; justify-content: space-between; align-items: center;">
+        <div style="font-weight: 700; font-size: 14px;">Új Dolgozat Felvitele (Minta Modál)</div>
+        <button class="schola-btn btn-outline" style="padding: 2px 6px; border: none;" onclick="closeModalDirect()">✕</button>
+      </div>
+      <div style="padding: 18px; display: flex; flex-direction: column; gap: 12px;">
+        <div>
+          <label style="font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px; color: var(--schola-text-secondary);">Tantárgy & Osztály</label>
+          <input type="text" class="schola-input" value="11.A Matematika (Emelt)">
+        </div>
+        <div>
+          <label style="font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px; color: var(--schola-text-secondary);">Téma / Leírás</label>
+          <input type="text" class="schola-input" value="Kombinatorika és Gráfelmélet Alapjai">
+        </div>
+        <div>
+          <label style="font-size: 11px; font-weight: 600; display: block; margin-bottom: 4px; color: var(--schola-text-secondary);">Tervezett Dátum</label>
+          <input type="date" class="schola-input" value="2026-12-05">
+        </div>
+      </div>
+      <div style="padding: 12px 18px; border-top: 1px solid var(--schola-border); background: var(--schola-hover-bg); display: flex; justify-content: flex-end; gap: 8px;">
+        <button class="schola-btn btn-outline" onclick="closeModalDirect()">Mégse</button>
+        <button class="schola-btn btn-primary" onclick="alert('Dolgozat mentve!'); closeModalDirect();">Mentés</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STICKY EXPORT ÉS MENTÉS SÁV -->
+  <div class="sticky-export-bar">
+    <div style="font-size: 12.5px; color: var(--schola-text-primary);">
+      <strong>Mentett Állapot:</strong> 
+      <span id="summary-label">Rádiusz: 10px | Akcentus: #e11d48 | Betű: Inter | Cím: 11px UPPERCASE</span>
+    </div>
+    <div style="display: flex; gap: 10px;">
+      <button class="schola-btn btn-outline" onclick="copyConfigTokens()">
+        📋 CSS Tokenek Másolása
+      </button>
+      <button class="schola-btn btn-primary" onclick="alert('✅ Kiváló! Minden döntésed mentve van a böngésződben, és azonnal átvezethető a Schola kódjába.');">
+        💾 Döntések Véglegesítése
+      </button>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       INTERAKTÍV ÉS PERSZISZTENS JAVASCRIPT MOTOR (LOCALSTORAGE TÁMOGATÁSSAL)
+       ========================================================================= -->
+  <script>
+    const STORAGE_KEY = 'schola_design_wizard_config_v2';
+
+    // Alapértelmezett / Javasolt konfiguráció
+    const state = {
+      cardRadius: '10px',
+      accentColor: '#e11d48',
+      fontFamily: 'Inter',
+      fontSize: '13px',
+      titleTransform: 'uppercase',
+      titleSize: '11px',
+      titleTracking: '1.2px',
+      titleWeight: '600',
+      elevation: 'subtle',
+      btnRadius: '8px',
+      iconStroke: '1.8',
+      badgeRadius: '6px',
+      liveBanner: 'dark',
+      surfaceTone: 'zinc',
+      modalRadius: '14px',
+      inputRadius: '8px',
+      gradeRadius: '50%',
+      isDark: false
+    };
+
+    // Betöltés localStorage-ből indításkor
+    function init() {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          Object.assign(state, parsed);
+        } catch (e) {
+          console.error('Nem sikerült a mentett konfiguráció betöltése:', e);
+        }
+      }
+      applyAllStateToDOM();
+      updateActiveRadioButtons();
+    }
+
+    function saveState() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      updateSummary();
+    }
+
+    // 1. Kártya lekerekítés
+    function chooseCardRadius(val, el) {
+      state.cardRadius = val;
+      document.documentElement.style.setProperty('--choice-card-radius', val);
+      setActiveOption('q-card-radius', el);
+      saveState();
+    }
+
+    // 2. Gomb lekerekítés
+    function chooseBtnRadius(val, el) {
+      state.btnRadius = val;
+      document.documentElement.style.setProperty('--choice-btn-radius', val);
+      setActiveOption('q-btn-radius', el);
+      saveState();
+    }
+
+    // 3. Badge lekerekítés
+    function chooseBadgeRadius(val, el) {
+      state.badgeRadius = val;
+      document.documentElement.style.setProperty('--choice-badge-radius', val);
+      setActiveOption('q-badge-radius', el);
+      saveState();
+    }
+
+    // 4. Akcentus szín
+    function chooseAccent(color, el) {
+      state.accentColor = color;
+      document.documentElement.style.setProperty('--choice-accent', color);
+      document.documentElement.style.setProperty('--choice-accent-light', hexToRgba(color, 0.08));
+      document.documentElement.style.setProperty('--choice-accent-hover', adjustBrightness(color, -15));
+      document.getElementById('svg-logo-dot').setAttribute('fill', color);
+      setActiveOption('q-accent-color', el);
+      saveState();
+    }
+
+    // 5. Órarend Live Banner
+    function chooseLiveBanner(mode, el) {
+      state.liveBanner = mode;
+      const banner = document.getElementById('live-lesson-banner');
+      if (mode === 'dark') {
+        document.documentElement.style.setProperty('--choice-banner-bg', '#1c1c1e');
+        document.documentElement.style.setProperty('--choice-banner-text', '#ffffff');
+        document.documentElement.style.setProperty('--choice-banner-border', 'transparent');
+      } else if (mode === 'tinted') {
+        document.documentElement.style.setProperty('--choice-banner-bg', 'var(--choice-accent-light)');
+        document.documentElement.style.setProperty('--choice-banner-text', 'var(--schola-text-primary)');
+        document.documentElement.style.setProperty('--choice-banner-border', 'var(--choice-accent)');
+      } else {
+        document.documentElement.style.setProperty('--choice-banner-bg', 'transparent');
+        document.documentElement.style.setProperty('--choice-banner-text', 'var(--schola-text-primary)');
+        document.documentElement.style.setProperty('--choice-banner-border', 'var(--schola-border)');
+      }
+      setActiveOption('q-live-banner', el);
+      saveState();
+    }
+
+    // 6. Felület tónus
+    function chooseSurfaceTone(tone, el) {
+      state.surfaceTone = tone;
+      if (tone === 'paper') {
+        document.documentElement.style.setProperty('--schola-bg-canvas', state.isDark ? '#141416' : '#fafaf9');
+        document.documentElement.style.setProperty('--schola-bg-panel', state.isDark ? '#1c1c1f' : '#ffffff');
+      } else if (tone === 'pure') {
+        document.documentElement.style.setProperty('--schola-bg-canvas', state.isDark ? '#000000' : '#ffffff');
+        document.documentElement.style.setProperty('--schola-bg-panel', state.isDark ? '#111111' : '#f9f9fb');
+      } else {
+        // Zinc
+        document.documentElement.style.setProperty('--schola-bg-canvas', state.isDark ? '#0a0a0c' : '#f4f4f5');
+        document.documentElement.style.setProperty('--schola-bg-panel', state.isDark ? '#121215' : '#ffffff');
+      }
+      setActiveOption('q-surface-tone', el);
+      saveState();
+    }
+
+    // 7. Betűtípus
+    function chooseFontFamily(font, el) {
+      state.fontFamily = font;
+      let family = "'Inter', sans-serif";
+      if (font === 'Plus Jakarta Sans') family = "'Plus Jakarta Sans', sans-serif";
+      if (font === 'System') family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+      document.documentElement.style.setProperty('--choice-font-family', family);
+      setActiveOption('q-font-family', el);
+      saveState();
+    }
+
+    // 8. Betűméret
+    function chooseFontSize(size, el) {
+      state.fontSize = size;
+      document.documentElement.style.setProperty('--choice-font-scale', size);
+      setActiveOption('q-font-size', el);
+      saveState();
+    }
+
+    // 9. Címsor stílus
+    function chooseTitleStyle(transform, size, tracking, weight, el) {
+      state.titleTransform = transform;
+      state.titleSize = size;
+      state.titleTracking = tracking;
+      state.titleWeight = weight;
+      document.documentElement.style.setProperty('--choice-title-transform', transform);
+      document.documentElement.style.setProperty('--choice-title-size', size);
+      document.documentElement.style.setProperty('--choice-title-tracking', tracking);
+      document.documentElement.style.setProperty('--choice-title-weight', weight);
+      setActiveOption('q-title-style', el);
+      saveState();
+    }
+
+    // 10. Ikon vonalvastagság
+    function chooseIconStroke(stroke, el) {
+      state.iconStroke = stroke;
+      document.documentElement.style.setProperty('--choice-icon-stroke', stroke);
+      setActiveOption('q-icon-stroke', el);
+      saveState();
+    }
+
+    // 11. Kártya mélység és árnyék
+    function chooseElevation(type, el) {
+      state.elevation = type;
+      if (type === 'none') {
+        document.documentElement.style.setProperty('--choice-card-shadow', 'none');
+        document.documentElement.style.setProperty('--choice-card-hover-shadow', 'none');
+      } else if (type === 'subtle') {
+        document.documentElement.style.setProperty('--choice-card-shadow', '0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.03)');
+        document.documentElement.style.setProperty('--choice-card-hover-shadow', '0 6px 18px -2px rgba(0, 0, 0, 0.1)');
+      } else {
+        document.documentElement.style.setProperty('--choice-card-shadow', '0 4px 14px rgba(0, 0, 0, 0.08)');
+        document.documentElement.style.setProperty('--choice-card-hover-shadow', '0 12px 28px rgba(0, 0, 0, 0.14)');
+      }
+      setActiveOption('q-elevation', el);
+      saveState();
+    }
+
+    // 12. Modális ablak
+    function chooseModalStyle(radius, el) {
+      state.modalRadius = radius;
+      document.documentElement.style.setProperty('--choice-modal-radius', radius);
+      setActiveOption('q-modal-style', el);
+      saveState();
+    }
+
+    // 13. Input mező
+    function chooseInputStyle(radius, el) {
+      state.inputRadius = radius;
+      document.documentElement.style.setProperty('--choice-input-radius', radius);
+      setActiveOption('q-input-style', el);
+      saveState();
+    }
+
+    // 14. Érdemjegy indikátor
+    function chooseGradeStyle(radius, el) {
+      state.gradeRadius = radius;
+      document.documentElement.style.setProperty('--choice-grade-radius', radius);
+      setActiveOption('q-grade-style', el);
+      saveState();
+    }
+
+    function setActiveOption(cardId, el) {
+      const card = document.getElementById(cardId);
+      if (card && el) {
+        card.querySelectorAll('.option-item').forEach(opt => opt.classList.remove('selected'));
+        el.classList.add('selected');
+      }
+    }
+
+    function applyAllStateToDOM() {
+      chooseCardRadius(state.cardRadius, null);
+      chooseBtnRadius(state.btnRadius, null);
+      chooseBadgeRadius(state.badgeRadius, null);
+      chooseAccent(state.accentColor, null);
+      chooseLiveBanner(state.liveBanner, null);
+      chooseSurfaceTone(state.surfaceTone, null);
+      chooseFontFamily(state.fontFamily, null);
+      chooseFontSize(state.fontSize, null);
+      chooseTitleStyle(state.titleTransform, state.titleSize, state.titleTracking, state.titleWeight, null);
+      chooseIconStroke(state.iconStroke, null);
+      chooseElevation(state.elevation, null);
+      chooseModalStyle(state.modalRadius, null);
+      chooseInputStyle(state.inputRadius, null);
+      chooseGradeStyle(state.gradeRadius, null);
+      if (state.isDark) {
+        document.documentElement.classList.add('dark-theme');
+        document.getElementById('theme-btn-icon').textContent = '☀️';
+      }
+    }
+
+    function updateActiveRadioButtons() {
+      // Szinkronizáljuk a kijelölt osztályokat az állapot alapján
+      markSelected('q-card-radius', state.cardRadius);
+      markSelected('q-btn-radius', state.btnRadius);
+      markSelected('q-badge-radius', state.badgeRadius);
+      markSelected('q-accent-color', state.accentColor);
+      markSelected('q-live-banner', state.liveBanner);
+      markSelected('q-surface-tone', state.surfaceTone);
+      markSelected('q-font-family', state.fontFamily);
+      markSelected('q-font-size', state.fontSize);
+      markSelected('q-icon-stroke', state.iconStroke);
+      markSelected('q-elevation', state.elevation);
+      markSelected('q-modal-style', state.modalRadius);
+      markSelected('q-input-style', state.inputRadius);
+      markSelected('q-grade-style', state.gradeRadius);
+    }
+
+    function markSelected(cardId, val) {
+      const card = document.getElementById(cardId);
+      if (!card) return;
+      card.querySelectorAll('.option-item').forEach(opt => {
+        const onclickAttr = opt.getAttribute('onclick') || '';
+        if (onclickAttr.includes(`'${val}'`)) {
+          opt.classList.add('selected');
+        } else {
+          opt.classList.remove('selected');
+        }
+      });
+    }
+
+    function applyAllRecommendations() {
+      chooseCardRadius('10px', document.querySelector('#q-card-radius .option-item:nth-child(3)'));
+      chooseBtnRadius('8px', document.querySelector('#q-btn-radius .option-item:nth-child(2)'));
+      chooseBadgeRadius('6px', document.querySelector('#q-badge-radius .option-item:nth-child(2)'));
+      chooseAccent('#e11d48', document.querySelector('#q-accent-color .option-item:nth-child(1)'));
+      chooseLiveBanner('dark', document.querySelector('#q-live-banner .option-item:nth-child(1)'));
+      chooseSurfaceTone('zinc', document.querySelector('#q-surface-tone .option-item:nth-child(1)'));
+      chooseFontFamily('Inter', document.querySelector('#q-font-family .option-item:nth-child(1)'));
+      chooseFontSize('13px', document.querySelector('#q-font-size .option-item:nth-child(2)'));
+      chooseTitleStyle('uppercase', '11px', '1.2px', '600', document.querySelector('#q-title-style .option-item:nth-child(1)'));
+      chooseIconStroke('1.8', document.querySelector('#q-icon-stroke .option-item:nth-child(2)'));
+      chooseElevation('subtle', document.querySelector('#q-elevation .option-item:nth-child(2)'));
+      chooseModalStyle('14px', document.querySelector('#q-modal-style .option-item:nth-child(2)'));
+      chooseInputStyle('8px', document.querySelector('#q-input-style .option-item:nth-child(1)'));
+      chooseGradeStyle('50%', document.querySelector('#q-grade-style .option-item:nth-child(1)'));
+      alert('✨ Mind a 14 kérdésnél beállítottuk a hivatalos fejlesztői javaslatot!');
+    }
+
+    function toggleTheme() {
+      state.isDark = !state.isDark;
+      const root = document.documentElement;
+      const icon = document.getElementById('theme-btn-icon');
+      if (state.isDark) {
+        root.classList.add('dark-theme');
+        icon.textContent = '☀️';
+      } else {
+        root.classList.remove('dark-theme');
+        icon.textContent = '🌙';
+      }
+      chooseSurfaceTone(state.surfaceTone, null);
+      saveState();
+    }
+
+    function highlightNav(el) {
+      document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    function pickDay(el) {
+      document.querySelectorAll('.day-selector').forEach(d => d.classList.remove('active'));
+      el.classList.add('active');
+    }
+
+    function updateSummary() {
+      document.getElementById('summary-label').textContent = 
+        `Kártya: ${state.cardRadius} | Gomb: ${state.btnRadius} | Akcentus: ${state.accentColor} | Betű: ${state.fontFamily} (${state.fontSize}) | Ikon: ${state.iconStroke}px`;
+    }
+
+    function copyConfigTokens() {
+      const cssString = `/* =========================================================================
+   SCHOLA DESIGN SYSTEM TOKENS (Mentve a Döntési Varázslóból)
+   ========================================================================= */
+:root {
+  --sys-radius-card: ${state.cardRadius};
+  --sys-radius-btn: ${state.btnRadius};
+  --sys-radius-badge: ${state.badgeRadius};
+  --sys-radius-modal: ${state.modalRadius};
+  --sys-radius-input: ${state.inputRadius};
+  --sys-radius-grade: ${state.gradeRadius};
+
+  --sys-accent: ${state.accentColor};
+  --sys-font-sans: '${state.fontFamily}', sans-serif;
+  --sys-font-size-base: ${state.fontSize};
+  --sys-icon-stroke: ${state.iconStroke};
+
+  --sys-title-transform: ${state.titleTransform};
+  --sys-title-size: ${state.titleSize};
+  --sys-title-tracking: ${state.titleTracking};
+  --sys-card-shadow: ${state.elevation === 'none' ? 'none' : state.elevation === 'raised' ? '0 4px 14px rgba(0,0,0,0.08)' : '0 1px 3px rgba(0,0,0,0.06)'};
+}`;
+      navigator.clipboard.writeText(cssString).then(() => {
+        alert('📋 A kiválasztott 14 beállítás CSS tokenjei másolva a vágólapra!');
+      });
+    }
+
+    // Modal kezelés
+    function openSampleModal() {
+      document.getElementById('sample-modal-overlay').classList.add('active');
+    }
+    function closeSampleModal(e) {
+      if (e.target.id === 'sample-modal-overlay') {
+        document.getElementById('sample-modal-overlay').classList.remove('active');
+      }
+    }
+    function closeModalDirect() {
+      document.getElementById('sample-modal-overlay').classList.remove('active');
+    }
+
+    function hexToRgba(hex, alpha) {
+      let c = hex.replace('#', '');
+      if (c.length === 3) c = c.split('').map(x => x + x).join('');
+      const num = parseInt(c, 16);
+      return `rgba(${(num >> 16) & 255}, ${(num >> 8) & 255}, ${num & 255}, ${alpha})`;
+    }
+
+    function adjustBrightness(hex, percent) {
+      let c = hex.replace('#', '');
+      if (c.length === 3) c = c.split('').map(x => x + x).join('');
+      let num = parseInt(c, 16);
+      let r = Math.min(255, Math.max(0, ((num >> 16) & 255) + Math.round(255 * (percent / 100))));
+      let g = Math.min(255, Math.max(0, ((num >> 8) & 255) + Math.round(255 * (percent / 100))));
+      let b = Math.min(255, Math.max(0, ((num >> 8) & 255) + Math.round(255 * (percent / 100))));
+      return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+    }
+
+    // Indítás
+    init();
+  </script>
+</body>
+</html>

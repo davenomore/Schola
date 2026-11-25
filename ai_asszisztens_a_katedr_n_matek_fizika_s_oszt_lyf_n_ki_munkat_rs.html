@@ -1,0 +1,2887 @@
+<!DOCTYPE html>
+<html lang="hu" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Asszisztens a Katedrán | Matek–Fizika & Osztályfőnöki Munkatárs</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- KaTeX for crisp LaTeX-like math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" onload="renderMathInElement(document.body);"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        navy: {
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            950: '#090d16',
+                        },
+                        emerald: {
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                        },
+                        amber: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Egyedi görgetősáv és finom animációk */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .tab-active {
+            background-color: #0f172a;
+            color: #ffffff;
+            box-shadow: 0 4px 14px 0 rgba(15, 23, 42, 0.25);
+        }
+        .math-formula {
+            font-family: 'Times New Roman', serif;
+            background: #f8fafc;
+            border-left: 3px solid #10b981;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.35s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-emerald-500 selection:text-white">
+
+    <!-- Felső Navigációs Sáv -->
+    <nav class="sticky top-0 z-40 bg-navy-900/95 backdrop-blur-md border-b border-slate-800 text-white">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <div class="bg-gradient-to-br from-emerald-500 to-teal-600 p-2 rounded-xl shadow-lg shadow-emerald-500/20">
+                        <i data-lucide="atom" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <span class="font-bold text-lg tracking-tight">Katedra<span class="text-emerald-400">AI</span></span>
+                        <span class="hidden xl:inline-block text-xs text-slate-400 ml-2 border-l border-slate-700 pl-2">Matek • Fizika • Osztályfőnökség</span>
+                    </div>
+                </div>
+                <!-- Fő Nézetváltó (3 Sorszámozott Fül - Alapértelmezett: 3. Saját Webapp Építése) -->
+                <div class="flex items-center bg-slate-800/95 p-1 rounded-xl border border-slate-700 gap-1 overflow-x-auto max-w-full">
+                    <button onclick="switchMainView('architektura')" id="main-nav-architektura"
+                        class="px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-slate-300 hover:text-white whitespace-nowrap cursor-pointer">
+                        <i data-lucide="network" class="w-4 h-4 shrink-0"></i>
+                        <span>1. Agent Rendszer & Antigravity</span>
+                    </button>
+                    <button onclick="switchMainView('eszkoztar')" id="main-nav-eszkoztar"
+                        class="px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 text-slate-300 hover:text-white whitespace-nowrap cursor-pointer">
+                        <i data-lucide="layout-grid" class="w-4 h-4 shrink-0"></i>
+                        <span>2. Szerepkörök & Kalkulátor</span>
+                    </button>
+                    <button onclick="switchMainView('webapp')" id="main-nav-webapp"
+                        class="px-2.5 sm:px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-bold transition flex items-center gap-1.5 bg-amber-400 text-navy-950 shadow-md whitespace-nowrap cursor-pointer">
+                        <i data-lucide="rocket" class="w-4 h-4 shrink-0"></i>
+                        <span>3. Saját Webapp Építése</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- ========================================================= -->
+    <!-- 1. FŐ NÉZET: RENDSZER & AGENT ARCHITEKTÚRA (ANTIGRAVITY)  -->
+    <!-- ========================================================= -->
+    <div id="view-architektura" class="hidden">
+        <!-- Hero Szekció: Rendszerszintű gondolkodás -->
+        <header class="relative overflow-hidden bg-navy-900 text-white pt-12 pb-16 border-b border-slate-800">
+            <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#10b981 1px, transparent 1px); background-size: 28px 28px;"></div>
+            <div class="absolute -top-24 -right-24 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl"></div>
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="max-w-4xl">
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/90 border border-emerald-500/30 text-emerald-400 text-xs font-semibold tracking-wide uppercase mb-5">
+                        <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+                        <span>Promptolás helyett autonóm tanári rendszerépítés</span>
+                    </div>
+                    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight mb-5">
+                        Hogyan lesz a promptokból <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-amber-300">Multi-Agent Rendszer</span> az Antigravity-ben?
+                    </h1>
+                    <p class="text-slate-300 text-base sm:text-lg leading-relaxed mb-8">
+                        A manuális másolgatás helyett az <strong>Antigravity</strong> környezetben fájlrendszer-alapú <strong>Skill-eket (`.md`)</strong>, végrehajtó eszközöket (<strong>Python, LaTeX, Google Workspace MCP</strong>) és egymást ellenőrző <strong>Agent-láncokat</strong> kapcsolhatsz össze – emberi jóváhagyási pontokkal.
+                    </p>
+                </div>
+
+                <!-- A 4 Pillér Interaktív Térképe -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="pillars-grid">
+                    <!-- JS tölti fel és kezeli az aktív állapotot -->
+                </div>
+
+                <!-- Kiválasztott Pillér Részletes Magyarázata -->
+                <div id="pillar-detail-box" class="mt-5 bg-slate-800/80 border border-emerald-500/30 rounded-2xl p-5 sm:p-6 backdrop-blur-sm animate-fade-in">
+                    <!-- JS tölti fel dinamikusan -->
+                </div>
+            </div>
+        </header>
+
+        <!-- Szekció 2: Antigravity IDE & Skill Fájl Böngésző -->
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+                <div>
+                    <span class="text-xs font-bold uppercase tracking-wider text-emerald-600 flex items-center gap-1.5 mb-1">
+                        <i data-lucide="folder-tree" class="w-4 h-4"></i>
+                        <span>Fájlrendszer-alapú Tudásbázis</span>
+                    </span>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-navy-900">Antigravity Projektmappa & Skill Fájlok</h2>
+                    <p class="text-slate-600 text-sm sm:text-base mt-1">
+                        Kattints a bal oldali fájlokra! Ezeket a Markdown és CSV fájlokat csak <strong>egyszer</strong> kell létrehoznod a projektedben, az Agentek automatikusan betöltik őket.
+                    </p>
+                </div>
+                <button onclick="copyActiveSkillFile()" class="bg-navy-900 hover:bg-navy-800 text-white font-semibold px-4 py-2.5 rounded-xl text-sm transition flex items-center gap-2 self-start md:self-auto cursor-pointer shadow-sm">
+                    <i data-lucide="copy" class="w-4 h-4 text-emerald-400"></i>
+                    <span>Aktuális fájl másolása</span>
+                </button>
+            </div>
+
+            <!-- IDE Ablak Szimulátor -->
+            <div class="bg-navy-950 rounded-2xl border border-slate-800 shadow-2xl overflow-hidden grid grid-cols-1 lg:grid-cols-12">
+                <!-- Bal oldal: Fájlfa -->
+                <div class="lg:col-span-4 bg-navy-900 border-b lg:border-b-0 lg:border-r border-slate-800 p-4 font-mono text-xs sm:text-sm">
+                    <div class="flex items-center gap-2 text-slate-400 pb-3 mb-3 border-b border-slate-800">
+                        <span class="w-3 h-3 rounded-full bg-red-500/80"></span>
+                        <span class="w-3 h-3 rounded-full bg-amber-500/80"></span>
+                        <span class="w-3 h-3 rounded-full bg-emerald-500/80"></span>
+                        <span class="ml-2 text-xs font-semibold tracking-wider uppercase text-slate-400">EXPLORER: tanari-rendszer/</span>
+                    </div>
+                    <div id="ide-file-tree" class="space-y-1">
+                        <!-- JS generálja a fájlfát -->
+                    </div>
+                </div>
+
+                <!-- Jobb oldal: Kód / Markdown nézegető -->
+                <div class="lg:col-span-8 flex flex-col">
+                    <div class="bg-slate-900/90 px-4 py-2.5 border-b border-slate-800 flex items-center justify-between text-xs font-mono">
+                        <div class="flex items-center gap-2 text-emerald-400">
+                            <i data-lucide="file-code" class="w-4 h-4"></i>
+                            <span id="ide-active-filename">tanari-rendszer/.antigravity/skills/matek-erettsegi-skill.md</span>
+                        </div>
+                        <span id="ide-file-role" class="text-slate-400 bg-slate-800 px-2 py-0.5 rounded">Skill definíció</span>
+                    </div>
+                    <div class="p-4 sm:p-6 overflow-x-auto max-h-[430px] overflow-y-auto">
+                        <pre id="ide-file-content" class="font-mono text-xs sm:text-sm text-slate-200 whitespace-pre-wrap leading-relaxed"></pre>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Szekció 3: Élő Multi-Agent Workflow Szimulátor -->
+        <section class="bg-slate-100 py-14 border-y border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="max-w-3xl mb-8">
+                    <span class="text-xs font-bold uppercase tracking-wider text-purple-700 flex items-center gap-1.5 mb-1">
+                        <i data-lucide="play" class="w-4 h-4"></i>
+                        <span>Interaktív Agent Orchestration Demó</span>
+                    </span>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-navy-900">Élő Multi-Agent Workflow Szimulátor</h2>
+                    <p class="text-slate-600 text-sm sm:text-base mt-1">
+                        Válassz egy valós tanári munkafolyamatot, indítsd el az Antigravity Agent Managert, és kövesd nyomon, hogyan dolgoznak össze az ügynökök a <strong>Human-in-the-loop</strong> jóváhagyási pontig!
+                    </p>
+                </div>
+
+                <!-- Workflow Választó Kártyák -->
+                <div id="sim-workflow-selector" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+                    <!-- JS generálja -->
+                </div>
+
+                <!-- Futtató Konzol és Agent Folyamatábra -->
+                <div class="bg-navy-900 text-white rounded-2xl border border-slate-800 shadow-xl overflow-hidden">
+                    <!-- Trigger Parancs Sáv -->
+                    <div class="bg-slate-800/90 p-4 sm:p-5 border-b border-slate-700 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                        <div class="space-y-1">
+                            <span class="text-[11px] font-mono uppercase tracking-wider text-amber-400">Tanári Trigger Parancs (Antigravity Agent Manager):</span>
+                            <p id="sim-trigger-prompt" class="text-sm sm:text-base font-medium text-white italic"></p>
+                        </div>
+                        <button onclick="runAgentSimulation()" id="btn-run-agent-sim"
+                            class="bg-emerald-500 hover:bg-emerald-400 text-navy-950 font-bold px-5 py-3 rounded-xl text-sm transition flex items-center justify-center gap-2 shrink-0 cursor-pointer shadow-lg shadow-emerald-500/20">
+                            <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+                            <span>Workflow Indítása (Agent Run)</span>
+                        </button>
+                    </div>
+
+                    <!-- Agent Lépések Vizualizációja -->
+                    <div class="p-5 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <!-- Bal oldal: 4 lépéses Agent Lánc -->
+                        <div class="lg:col-span-7 space-y-3" id="sim-agent-steps">
+                            <!-- JS tölti fel -->
+                        </div>
+
+                        <!-- Jobb oldal: Terminál Log & Human-in-the-loop Jóváhagyás -->
+                        <div class="lg:col-span-5 flex flex-col justify-between bg-navy-950 rounded-xl border border-slate-800 p-4 font-mono text-xs">
+                            <div>
+                                <div class="flex items-center justify-between text-slate-400 pb-2 mb-3 border-b border-slate-800">
+                                    <span>ANTIGRAVITY EXECUTION LOG</span>
+                                    <span id="sim-status-badge" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300">Készenlétben</span>
+                                </div>
+                                <div id="sim-terminal-logs" class="space-y-2 text-slate-300 max-h-60 overflow-y-auto">
+                                    <p class="text-slate-500">> Kattints a "Workflow Indítása" gombra a szimuláció futtatásához...</p>
+                                </div>
+                            </div>
+
+                            <!-- Human-in-the-loop Jóváhagyó Panel -->
+                            <div id="sim-hitl-box" class="hidden mt-4 pt-4 border-t border-amber-500/40 bg-amber-500/10 rounded-xl p-3.5 animate-fade-in">
+                                <div class="flex items-center gap-2 text-amber-400 font-bold mb-1.5 font-sans text-sm">
+                                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                                    <span>Human-in-the-loop: Tanári jóváhagyás szükséges</span>
+                                </div>
+                                <p id="sim-hitl-desc" class="text-xs text-slate-200 font-sans mb-3 leading-relaxed"></p>
+                                <div class="flex flex-wrap gap-2 font-sans">
+                                    <button onclick="approveHitlStep()" class="bg-emerald-500 hover:bg-emerald-400 text-navy-950 font-bold px-3.5 py-2 rounded-lg text-xs transition flex items-center gap-1.5 cursor-pointer">
+                                        <i data-lucide="check" class="w-3.5 h-3.5 stroke-[3]"></i>
+                                        <span>Jóváhagyás & Kimenet Megnyitása</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Szekció 4: Három Konkrét Rendszer-példa Összehasonlító Táblázat -->
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+            <div class="mb-8">
+                <span class="text-xs font-bold uppercase tracking-wider text-sky-700 flex items-center gap-1.5 mb-1">
+                    <i data-lucide="table-2" class="w-4 h-4"></i>
+                    <span>Gyakorlati Rendszer-architektúrák</span>
+                </span>
+                <h2 class="text-2xl sm:text-3xl font-bold text-navy-900">3 Komplett Osztályfőnöki és Szaktanári Rendszer</h2>
+                <p class="text-slate-600 text-sm sm:text-base mt-1">
+                    Így kapcsolódnak össze a triggerek, az eszközök (Tools/MCP) és a kimenetek a mindennapi iskolai munkában.
+                </p>
+            </div>
+
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-navy-900 text-white text-xs uppercase tracking-wider">
+                                <th class="p-4 font-semibold">Rendszer neve</th>
+                                <th class="p-4 font-semibold">Bemenet (Trigger)</th>
+                                <th class="p-4 font-semibold">Agentek & Eszközök a háttérben</th>
+                                <th class="p-4 font-semibold">Kész végeredmény</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-200 text-sm">
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="p-4 font-bold text-navy-900 align-top">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span>
+                                        <span>1. Kréta Elemző & Szülői Asszisztens</span>
+                                    </div>
+                                </td>
+                                <td class="p-4 text-slate-600 align-top">
+                                    Havi Kréta jegy- és hiányzás-export (<code class="text-xs bg-slate-100 px-1.5 py-0.5 rounded font-mono text-navy-900">.csv</code>) bedobása a mappába.
+                                </td>
+                                <td class="p-4 text-slate-700 align-top">
+                                    <span class="inline-block bg-sky-100 text-sky-800 text-xs font-semibold px-2 py-0.5 rounded">Python Tool</span> kiszűri a bukásra állókat és az igazolatlanokat →
+                                    <span class="inline-block bg-purple-100 text-purple-800 text-xs font-semibold px-2 py-0.5 rounded">Osztályfőnök Agent</span> megfogalmazza a személyre szabott, empatikus leveleket →
+                                    <span class="inline-block bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-0.5 rounded">Gmail MCP</span> elkészíti a piszkozatokat.
+                                </td>
+                                <td class="p-4 text-slate-800 font-medium align-top">
+                                    25 db egyedi, névre szóló e-mail piszkozat + 1 összesítő táblázat neked a fogadóórára.
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="p-4 font-bold text-navy-900 align-top">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span>
+                                        <span>2. "Javításból Tanulás" Ciklus</span>
+                                    </div>
+                                </td>
+                                <td class="p-4 text-slate-600 align-top">
+                                    A kijavított dolgozatok pontszámainak beírása egy táblázatba.
+                                </td>
+                                <td class="p-4 text-slate-700 align-top">
+                                    <span class="inline-block bg-sky-100 text-sky-800 text-xs font-semibold px-2 py-0.5 rounded">Statisztika Agent</span> azonosítja a 3 leggyakoribb típushibát →
+                                    <span class="inline-block bg-emerald-100 text-emerald-800 text-xs font-semibold px-2 py-0.5 rounded">Matek Agent</span> generál 3 darab 5 perces mikro-gyakorló feladatlapot a következő óra elejére.
+                                </td>
+                                <td class="p-4 text-slate-800 font-medium align-top">
+                                    Kész, nyomtatható PDF az óra eleji ráhangolódáshoz, pontosan az osztály hibáira szabva.
+                                </td>
+                            </tr>
+                            <tr class="hover:bg-slate-50 transition">
+                                <td class="p-4 font-bold text-navy-900 align-top">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-2.5 h-2.5 rounded-full bg-purple-500 shrink-0"></span>
+                                        <span>3. Osztálykirándulás Logisztikai Agent</span>
+                                    </div>
+                                </td>
+                                <td class="p-4 text-slate-600 align-top">
+                                    Egyetlen mondat: <em>"3 napos kirándulás a Mátrába, 28 diák, max 35.000 Ft/fő, vonattal."</em>
+                                </td>
+                                <td class="p-4 text-slate-700 align-top">
+                                    <span class="inline-block bg-sky-100 text-sky-800 text-xs font-semibold px-2 py-0.5 rounded">Search Tool</span> lekéri a MÁV menetrendeket és a szállásárakat →
+                                    <span class="inline-block bg-emerald-100 text-emerald-800 text-xs font-semibold px-2 py-0.5 rounded">Excel/Python Tool</span> kiszámolja a pontos költségvetést →
+                                    <span class="inline-block bg-amber-100 text-amber-800 text-xs font-semibold px-2 py-0.5 rounded">Docs Agent</span> megírja a szülői tájékoztatót és a beleegyező nyilatkozatot.
+                                </td>
+                                <td class="p-4 text-slate-800 font-medium align-top">
+                                    Komplett útiterv, Excel költségvetés és aláírható szülői nyilatkozat 2 perc alatt.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Átváltó CTA a Szerepkörökre -->
+            <div class="mt-8 bg-gradient-to-r from-navy-900 to-slate-800 rounded-2xl p-6 text-white flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div>
+                    <h3 class="font-bold text-lg">Szeretnéd kipróbálni az egyes szaktárgyi Skill-eket és szimulációkat?</h3>
+                    <p class="text-slate-300 text-sm">Nézd meg a Matematika, Fizika és Osztályfőnöki kártyákat élő előnézettel és a heti időmegtakarítás-kalkulátorral!</p>
+                </div>
+                <button onclick="switchMainView('eszkoztar')" class="bg-amber-500 hover:bg-amber-400 text-navy-950 font-bold px-5 py-3 rounded-xl text-sm transition flex items-center gap-2 shrink-0 cursor-pointer">
+                    <span>Tovább a Szerepkörökhöz</span>
+                    <i data-lucide="arrow-right" class="w-4 h-4"></i>
+                </button>
+            </div>
+        </section>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 2. FŐ NÉZET: SZEREPKÖR-SPECIFIKUS ESZKÖZTÁR & KALKULÁTOR  -->
+    <!-- ========================================================= -->
+    <div id="view-eszkoztar" class="hidden">
+    <!-- Hero / Üdvözlő Szekció -->
+    <header class="relative overflow-hidden bg-navy-900 text-white pt-12 pb-20 lg:pt-16 lg:pb-24">
+        <!-- Háttér dekorációs rács és fényeffektek -->
+        <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#10b981 1px, transparent 1px); background-size: 28px 28px;"></div>
+        <div class="absolute -top-24 -right-24 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl"></div>
+        <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-amber-500/15 rounded-full blur-3xl"></div>
+
+        <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="max-w-3xl">
+                <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/80 border border-slate-700 text-emerald-400 text-xs font-semibold tracking-wide uppercase mb-6">
+                    <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                    <span>Gemini Agents, Skills & Canvas a középiskolai oktatásban</span>
+                </div>
+                <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight mb-6">
+                    AI Asszisztens a Katedrán és az <span class="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-amber-300">Osztályfőnöki Irodában</span>
+                </h1>
+                <p class="text-slate-300 text-base sm:text-lg leading-relaxed mb-8">
+                    Hogyan válthatod ki az adminisztrációs túlterhelést és a repetitív feladat-összeállítást célzott Gemini munkafolyamatokkal? Fedezd fel az egyedi tanári <strong>Skill-eket (Gem-eket)</strong>, az interaktív <strong>Canvas szimulációkat</strong> és az összekapcsolt <strong>Agent workflow-kat</strong>, amelyek hetente akár 5–7 órát spórolnak meg neked.
+                </p>
+
+                <!-- Gyors pillérek -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                    <div class="bg-slate-800/60 border border-slate-700/80 p-4 rounded-2xl backdrop-blur-sm">
+                        <div class="flex items-center gap-2.5 text-emerald-400 font-semibold mb-1">
+                            <i data-lucide="bot" class="w-5 h-5"></i>
+                            <span>Custom Skills & Gems</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">Előre betanított szakmai személyiségek: pl. NAT-kompatibilis érettségi javító vagy empatikus szülői kommunikátor.</p>
+                    </div>
+                    <div class="bg-slate-800/60 border border-slate-700/80 p-4 rounded-2xl backdrop-blur-sm">
+                        <div class="flex items-center gap-2.5 text-amber-400 font-semibold mb-1">
+                            <i data-lucide="code-2" class="w-5 h-5"></i>
+                            <span>Canvas & Szimulációk</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">Egyetlen mondattal generált interaktív fizikai kísérletek és függvényábrázoló appok kivetítőre.</p>
+                    </div>
+                    <div class="bg-slate-800/60 border border-slate-700/80 p-4 rounded-2xl backdrop-blur-sm">
+                        <div class="flex items-center gap-2.5 text-sky-400 font-semibold mb-1">
+                            <i data-lucide="workflow" class="w-5 h-5"></i>
+                            <span>Multi-Step Workflow</span>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">Láncolt munkafolyamatok a dolgozatjavítástól a differenciált gyakorlón át a Kréta-értékelésig.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Fő Interaktív Szerepkör-választó Szekció -->
+    <main id="eszkoztar" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 -mt-8 relative z-10 pb-16">
+        
+        <!-- Szerepkör Fülek (Tabs) -->
+        <div class="bg-white p-2 rounded-2xl shadow-xl border border-slate-200/80 mb-8">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2" role="tablist" aria-label="Tanári szerepkörök">
+                <button onclick="switchRole('matek')" id="tab-matek" role="tab" aria-selected="true"
+                    class="role-tab tab-active flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-xl font-semibold text-sm sm:text-base transition-all duration-200 cursor-pointer">
+                    <i data-lucide="sigma" class="w-5 h-5 text-emerald-400"></i>
+                    <span>Matematika</span>
+                </button>
+                <button onclick="switchRole('fizika')" id="tab-fizika" role="tab" aria-selected="false"
+                    class="role-tab text-slate-600 hover:bg-slate-100 flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-xl font-semibold text-sm sm:text-base transition-all duration-200 cursor-pointer">
+                    <i data-lucide="zap" class="w-5 h-5 text-amber-500"></i>
+                    <span>Fizika</span>
+                </button>
+                <button onclick="switchRole('ofo')" id="tab-ofo" role="tab" aria-selected="false"
+                    class="role-tab text-slate-600 hover:bg-slate-100 flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-xl font-semibold text-sm sm:text-base transition-all duration-200 cursor-pointer">
+                    <i data-lucide="users" class="w-5 h-5 text-sky-600"></i>
+                    <span>Osztályfőnöki munka</span>
+                </button>
+                <button onclick="switchRole('workflow')" id="tab-workflow" role="tab" aria-selected="false"
+                    class="role-tab text-slate-600 hover:bg-slate-100 flex items-center justify-center gap-2.5 py-3.5 px-4 rounded-xl font-semibold text-sm sm:text-base transition-all duration-200 cursor-pointer">
+                    <i data-lucide="git-merge" class="w-5 h-5 text-purple-600"></i>
+                    <span>Komplex Workflow-k</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Aktív Szerepkör Bevezető Sáv -->
+        <div id="role-banner" class="bg-white border border-slate-200 rounded-2xl p-6 mb-8 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <!-- JS tölti fel dinamikusan -->
+        </div>
+
+        <!-- Kártyák Rácsa -->
+        <div id="cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+            <!-- JS tölti fel dinamikusan -->
+        </div>
+
+    </main>
+
+    <!-- Interaktív Workflow Építő & Időmegtakarítás Kalkulátor -->
+    <section id="kalkulator" class="bg-navy-900 text-white py-16 border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-400 text-xs font-semibold uppercase tracking-wider mb-3">
+                    <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+                    <span>Személyre szabott tervező</span>
+                </span>
+                <h2 class="text-2xl sm:text-3xl font-bold mb-3">Heti Workflow Építő & Időmegtakarítás Kalkulátor</h2>
+                <p class="text-slate-400 text-sm sm:text-base">
+                    Jelöld be, milyen feladatok várnak rád ezen a héten! A rendszer kiszámolja a várható időmegtakarítást, és összeállít egy konkrét, egymásra épülő Gemini munkafolyamatot.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <!-- Bal oldal: Feladatválasztó -->
+                <div class="lg:col-span-7 bg-slate-800/70 border border-slate-700 rounded-2xl p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-lg text-white flex items-center gap-2">
+                            <i data-lucide="check-square" class="w-5 h-5 text-emerald-400"></i>
+                            <span>Válaszd ki az e heti teendőidet:</span>
+                        </h3>
+                        <button onclick="selectAllTasks()" class="text-xs text-emerald-400 hover:text-emerald-300 underline cursor-pointer">
+                            Összes kijelölése / törlése
+                        </button>
+                    </div>
+
+                    <div id="task-checklist" class="space-y-3">
+                        <!-- JS generálja a feladatokat -->
+                    </div>
+                </div>
+
+                <!-- Jobb oldal: Eredmény és Javasolt Workflow -->
+                <div class="lg:col-span-5 bg-gradient-to-b from-slate-800 to-slate-900 border border-emerald-500/30 rounded-2xl p-6 shadow-2xl sticky top-24">
+                    <div class="flex items-center justify-between border-b border-slate-700 pb-5 mb-5">
+                        <div>
+                            <p class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Becsült heti időmegtakarítás</p>
+                            <div class="flex items-baseline gap-2 mt-1">
+                                <span id="saved-hours" class="text-4xl sm:text-5xl font-extrabold text-emerald-400">0</span>
+                                <span class="text-lg font-medium text-slate-300">óra / hét</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-slate-400">Havi szinten</p>
+                            <p id="saved-monthly" class="text-xl font-bold text-amber-400">0 óra</p>
+                            <p class="text-[11px] text-slate-400">felszabadított idő</p>
+                        </div>
+                    </div>
+
+                    <!-- Vizuális idő-összehasonlító sáv -->
+                    <div class="mb-6">
+                        <div class="flex justify-between text-xs text-slate-400 mb-1.5">
+                            <span>Hagyományos munkaidő: <strong id="trad-time" class="text-white">0 óra</strong></span>
+                            <span>Gemini-vel: <strong id="ai-time" class="text-emerald-400">0 óra</strong></span>
+                        </div>
+                        <div class="w-full h-3 bg-slate-700 rounded-full overflow-hidden flex">
+                            <div id="bar-ai" class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%"></div>
+                            <div id="bar-saved" class="bg-amber-400/80 h-full transition-all duration-500" style="width: 0%"></div>
+                        </div>
+                        <div class="flex gap-4 mt-2 text-[11px] text-slate-400">
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Maradék tanári finomhangolás</span>
+                            <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400 inline-block"></span> AI által megspórolt idő</span>
+                        </div>
+                    </div>
+
+                    <!-- Javasolt Gemini Workflow Lépések -->
+                    <div>
+                        <h4 class="text-sm font-bold text-white uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <i data-lucide="sparkles" class="w-4 h-4 text-amber-400"></i>
+                            <span>Javasolt Gemini Munkafolyamatod:</span>
+                        </h4>
+                        <div id="recommended-workflow" class="space-y-3 text-sm">
+                            <p class="text-slate-400 italic text-xs">Jelölj be legalább egy feladatot a bal oldalon a személyre szabott munkafolyamat megjelenítéséhez.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- 3. FŐ NÉZET: SAJÁT WEBAPP ÉPÍTÉSE (ALAPÉRTELMEZETT)       -->
+    <!-- ========================================================= -->
+    <div id="view-webapp" class="block">
+        <!-- Hero Szekció -->
+        <header class="relative overflow-hidden bg-navy-900 text-white pt-12 pb-16 border-b border-slate-800">
+            <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(#fbbf24 1px, transparent 1px); background-size: 28px 28px;"></div>
+            <div class="absolute -top-24 -right-24 w-96 h-96 bg-amber-500/20 rounded-full blur-3xl"></div>
+            <div class="absolute -bottom-24 -left-24 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl"></div>
+
+            <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="max-w-4xl">
+                    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/15 border border-amber-400/40 text-amber-300 text-xs font-bold tracking-wide uppercase mb-5">
+                        <i data-lucide="rocket" class="w-3.5 h-3.5"></i>
+                        <span>3. Fül • Lépésről lépésre saját tanári alkalmazásig</span>
+                    </div>
+                    <h1 class="text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight leading-tight mb-5">
+                        Hogyan építs saját tanári vagy osztálytermi <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-emerald-400 to-teal-300">webalkalmazást az Antigravity-vel?</span>
+                    </h1>
+                    <p class="text-slate-300 text-base sm:text-lg leading-relaxed mb-8">
+                        Ha az agent-munkafolyamataidat (dolgozatgenerátor, Kréta-elemző, fizikai szimulátorok) nem csak saját magadnak, hanem a <strong>diákjaidnak</strong> vagy a <strong>tantestületnek</strong> is elérhetővé tennéd, készíts belőlük egy saját webalkalmazást! Nem kell programozónak lenned: az alábbi tervezővel összeállíthatod a rendszered tervrajzát és a kész Antigravity Master Promptot.
+                    </p>
+                </div>
+
+                <!-- 3 Lépcsős Webapp Architektúra Választó -->
+                <div class="mb-4 flex items-center justify-between">
+                    <span class="text-xs font-mono uppercase tracking-wider text-amber-400 font-semibold">1. Lépés: Válassz technológiai szintet (kattints a kártyákra)</span>
+                </div>
+                <div id="webapp-tiers-grid" class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <!-- JS tölti fel -->
+                </div>
+
+                <!-- Kiválasztott Szint Részletes Útmutatója -->
+                <div id="webapp-tier-detail" class="mt-5 bg-slate-800/85 border border-amber-400/30 rounded-2xl p-5 sm:p-6 backdrop-blur-sm animate-fade-in">
+                    <!-- JS tölti fel -->
+                </div>
+            </div>
+        </header>
+
+        <!-- Interaktív Tanári Webapp Tervező (App Blueprint Generátor) -->
+        <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14">
+            <div class="max-w-3xl mb-8">
+                <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5 mb-1">
+                    <i data-lucide="cpu" class="w-4 h-4"></i>
+                    <span>2. Lépés • Interaktív App Blueprint Generátor</span>
+                </span>
+                <h2 class="text-2xl sm:text-3xl font-bold text-navy-900">Állítsd össze a saját tanári webalkalmazásodat!</h2>
+                <p class="text-slate-600 text-sm sm:text-base mt-1">
+                    Jelöld be, milyen funkciókat szeretnél az alkalmazásodba! A jobb oldali panel azonnal legenerálja az <strong>Antigravity mappaszerkezetet</strong> és a bemásolható <strong>Master Promptot</strong>, amivel az AI megépíti a működő kódot.
+                </p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                <!-- Bal oldal: Modulválasztó -->
+                <div class="lg:col-span-5 bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-6">
+                    <div>
+                        <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Alkalmazás munkacíme:</label>
+                        <input type="text" id="webapp-custom-name" value="11.B Okos Osztályterem & Fizika Labor" oninput="updateWebappBlueprint()"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm font-semibold text-navy-900 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20">
+                    </div>
+
+                    <div>
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-bold uppercase tracking-wider text-slate-500">Választható tanári és diák modulok:</span>
+                            <span id="webapp-module-count" class="text-xs font-mono bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded font-bold">3 modul aktív</span>
+                        </div>
+                        <div id="webapp-modules-list" class="space-y-2.5">
+                            <!-- JS tölti fel -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Jobb oldal: Élő Kimeneti Konzol (Mappaszerkezet + Master Prompt) -->
+                <div class="lg:col-span-7 bg-navy-950 text-white rounded-2xl border border-slate-800 shadow-2xl overflow-hidden">
+                    <!-- Konzol Fejléc & Fülváltó -->
+                    <div class="bg-navy-900 px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-1.5 bg-slate-800 p-1 rounded-xl">
+                            <button onclick="switchBlueprintTab('prompt')" id="bp-tab-prompt"
+                                class="px-3 py-1.5 rounded-lg text-xs font-bold transition bg-emerald-500 text-navy-950 cursor-pointer flex items-center gap-1.5">
+                                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+                                <span>Kész Master Prompt</span>
+                            </button>
+                            <button onclick="switchBlueprintTab('tree')" id="bp-tab-tree"
+                                class="px-3 py-1.5 rounded-lg text-xs font-semibold transition text-slate-300 hover:text-white cursor-pointer flex items-center gap-1.5">
+                                <i data-lucide="folder-tree" class="w-3.5 h-3.5"></i>
+                                <span>Antigravity Mappaszerkezet</span>
+                            </button>
+                        </div>
+
+                        <button onclick="copyBlueprintOutput()"
+                            class="bg-amber-400 hover:bg-amber-300 text-navy-950 font-bold px-3.5 py-1.5 rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer shadow-sm">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                            <span id="bp-copy-label">Master Prompt Másolása</span>
+                        </button>
+                    </div>
+
+                    <!-- Tartalom Panel -->
+                    <div class="p-5 sm:p-6">
+                        <div id="bp-panel-prompt" class="block">
+                            <div class="flex items-center justify-between text-xs text-slate-400 mb-2 font-mono">
+                                <span>Illeszd be ezt az Antigravity Agent Managerbe vagy Gemini Canvasba:</span>
+                                <span id="bp-tier-badge" class="text-amber-400">1. Szint: Egyfájlos HTML5 / PWA</span>
+                            </div>
+                            <pre id="bp-prompt-output" class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 font-mono text-xs sm:text-sm text-slate-200 whitespace-pre-wrap leading-relaxed max-h-[420px] overflow-y-auto"></pre>
+                        </div>
+
+                        <div id="bp-panel-tree" class="hidden">
+                            <div class="text-xs text-slate-400 mb-2 font-mono">
+                                Automatikusan generált Antigravity projekt-struktúra a kiválasztott modulokhoz:
+                            </div>
+                            <pre id="bp-tree-output" class="bg-slate-900/90 border border-slate-800 rounded-xl p-4 font-mono text-xs sm:text-sm text-emerald-300 whitespace-pre leading-relaxed max-h-[420px] overflow-x-auto overflow-y-auto"></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4 Lépéses Publikálás & Osztálytermi Megosztás -->
+        <section class="bg-slate-100 py-14 border-t border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="mb-8">
+                    <span class="text-xs font-bold uppercase tracking-wider text-purple-700 flex items-center gap-1.5 mb-1">
+                        <i data-lucide="share-2" class="w-4 h-4"></i>
+                        <span>3. Lépés • Publikálás és Osztálytermi Bevetés</span>
+                    </span>
+                    <h2 class="text-2xl sm:text-3xl font-bold text-navy-900">Hogyan jut el az alkalmazás a diákok telefonjára 2 perc alatt?</h2>
+                    <p class="text-slate-600 text-sm sm:text-base mt-1">
+                        Ingyenes publikálási útvonalak és élő osztálytermi QR-kód generátor a kivetítőhöz.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+                    <!-- Bal oldali 4 lépés -->
+                    <div class="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <span class="inline-block font-mono text-xs font-bold bg-navy-900 text-emerald-400 px-2.5 py-1 rounded-lg mb-3">01. LÉPÉS</span>
+                            <h3 class="font-bold text-navy-900 text-base mb-1.5">Generálás & Helyi Teszt</h3>
+                            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                Az Antigravity elkészíti az <code class="bg-slate-100 px-1 py-0.5 rounded font-mono text-navy-900">index.html</code> (vagy React) projektet. Dupla kattintással azonnal megnyithatod a saját gépeden, internet nélkül is működik.
+                            </p>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <span class="inline-block font-mono text-xs font-bold bg-navy-900 text-amber-400 px-2.5 py-1 rounded-lg mb-3">02. LÉPÉS</span>
+                            <h3 class="font-bold text-navy-900 text-base mb-1.5">Ingyenes Publikálás (Vercel / GitHub)</h3>
+                            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                Húzd be a mappát a <strong>Vercel</strong> vagy <strong>GitHub Pages</strong> felületére (vagy kérd meg az Antigravity terminálját: <em>"Deployold Vercelre!"</em>), és 30 másodperc múlva kapsz egy saját publikus linket (pl. <code class="text-emerald-700 font-mono text-xs">11b-fizika.vercel.app</code>).
+                            </p>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <span class="inline-block font-mono text-xs font-bold bg-navy-900 text-sky-400 px-2.5 py-1 rounded-lg mb-3">03. LÉPÉS</span>
+                            <h3 class="font-bold text-navy-900 text-base mb-1.5">Mobilra Telepítés (PWA Ikon)</h3>
+                            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                Ha kérsz bele egy <code class="bg-slate-100 px-1 py-0.5 rounded font-mono text-navy-900">manifest.json</code> fájlt, a diákok a böngészőben a <em>"Hozzáadás a kezdőképernyőhöz"</em> gombbal valódi mobilalkalmazásként telepíthetik az ikont.
+                            </p>
+                        </div>
+
+                        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <span class="inline-block font-mono text-xs font-bold bg-navy-900 text-purple-400 px-2.5 py-1 rounded-lg mb-3">04. LÉPÉS</span>
+                            <h3 class="font-bold text-navy-900 text-base mb-1.5">Osztálytermi QR-kódos Belépés</h3>
+                            <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                                Az óra elején kivetíted az alkalmazás QR-kódját a táblára – a diákok 3 másodperc alatt beolvassák a telefonjukkal, és már indíthatják is a szimulációt vagy a röpdolgozatot.
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Jobb oldali Élő QR-kód Generátor Kártya -->
+                    <div class="lg:col-span-4 bg-navy-900 text-white rounded-2xl p-6 border border-slate-800 shadow-xl flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider mb-2">
+                                <i data-lucide="qr-code" class="w-4 h-4"></i>
+                                <span>Élő Osztálytermi QR-Kód Előnézet</span>
+                            </div>
+                            <p class="text-xs text-slate-300 mb-4 leading-relaxed">
+                                Írd be az elkészült webalkalmazásod (vagy egy megosztott tananyag) linkjét, és máris kivetíthető QR-kódot kapsz!
+                            </p>
+                            <input type="text" id="qr-url-input" value="https://11b-fizika-labor.vercel.app" oninput="renderLiveQrPreview()"
+                                class="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-emerald-300 focus:outline-none focus:border-emerald-400 mb-4">
+                        </div>
+
+                        <div class="bg-white p-4 rounded-2xl flex flex-col items-center justify-center text-center">
+                            <canvas id="qr-preview-canvas" width="160" height="160" class="w-36 h-36 block"></canvas>
+                            <span id="qr-caption" class="text-[11px] font-mono text-slate-600 mt-2 truncate max-w-full">11b-fizika-labor.vercel.app</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Lábléc -->
+    <footer class="bg-navy-950 text-slate-400 py-8 border-t border-slate-800/80 text-center text-xs">
+        <div class="max-w-7xl mx-auto px-4">
+            <p class="mb-2 text-slate-300 font-medium">KatedraAI – Gyakorlati útmutató középiskolai matematika–fizika tanároknak és osztályfőnököknek</p>
+            <p>Tipp: A másolt promptokat illeszd be közvetlenül a Gemini felületére, vagy mentsd el őket saját <strong>Gem (Custom Skill)</strong> utasításként!</p>
+        </div>
+    </footer>
+
+    <!-- Interaktív Előnézet / Példa Modális Ablak -->
+    <div id="preview-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-navy-950/80 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden animate-fade-in">
+            <!-- Modal Fejléc -->
+            <div class="bg-navy-900 text-white px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <span id="modal-badge" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Eszköz
+                    </span>
+                    <h3 id="modal-title" class="font-bold text-base sm:text-lg truncate">Példa címe</h3>
+                </div>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition cursor-pointer" aria-label="Bezárás">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Modal Tartalom (Görgethető) -->
+            <div id="modal-body" class="p-6 overflow-y-auto space-y-6 text-sm sm:text-base">
+                <!-- JS tölti fel -->
+            </div>
+
+            <!-- Modal Lábléc -->
+            <div class="bg-slate-50 px-6 py-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                <span class="text-xs text-slate-500">Ezt a kimenetet a megadott prompt alapján generálta a Gemini.</span>
+                <div class="flex items-center gap-2">
+                    <button id="modal-copy-btn" class="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold px-4 py-2 rounded-xl text-sm transition flex items-center gap-2 cursor-pointer">
+                        <i data-lucide="copy" class="w-4 h-4"></i>
+                        <span>Prompt másolása</span>
+                    </button>
+                    <button onclick="closeModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-800 font-semibold px-4 py-2 rounded-xl text-sm transition cursor-pointer">
+                        Bezárás
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Vágólap visszajelző Toast értesítés -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-navy-900 text-white px-4 py-3 rounded-xl shadow-xl border border-emerald-500/40 flex items-center gap-2.5 text-sm font-medium">
+        <div class="bg-emerald-500 text-navy-950 rounded-full p-1">
+            <i data-lucide="check" class="w-3.5 h-3.5 stroke-[3]"></i>
+        </div>
+        <span id="toast-message">Prompt sikeresen a vágólapra másolva!</span>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. ADATBÁZIS: SZEREPKÖRÖK, ESZKÖZÖK, PROMPTOK ÉS PÉLDÁK
+        // ==========================================
+        const rolesData = {
+            matek: {
+                title: "Matematika Szaktanári Eszköztár",
+                subtitle: "Differenciált feladatsorok, lépésről lépésre levezetések, érettségi elemzés és interaktív függvényvizsgálat.",
+                icon: "sigma",
+                accent: "emerald",
+                cards: [
+                    {
+                        id: "matek-1",
+                        tool: "Custom Skill / Gem",
+                        toolIcon: "bot",
+                        badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-200",
+                        title: "3 Szintű Differenciált Feladatsor Generátor",
+                        description: "Azonos témakörből (pl. másodfokú egyenletek, trigonometria) azonnal A, B és C nehézségi szintű (felzárkóztató, alapszintű, emelt/verseny) feladatsort készít javítókulccsal és pontozással.",
+                        timeSaved: "45 perc / dolgozat",
+                        prompt: `Viselkedj tapasztalt magyar középiskolai matematikatanárként! Készíts egy 3 szintre differenciált gyakorló feladatsort a(z) [TÉMAKÖR, pl. exponenciális egyenletek] témaköréből 11. évfolyam számára a magyar NAT követelményei szerint.
+Struktúra:
+1. 'Alapozó szint' (3 feladat): az alapdefiníciók és azonosságok közvetlen alkalmazása.
+2. 'Középszintű érettségi szint' (3 feladat): szöveges környezetbe ágyazott, összetettebb feladatok.
+3. 'Emelt / Kihívás szint' (2 feladat): paraméteres vagy bizonyítási jellegű feladatok.
+Minden feladathoz adj meg részletes, lépésről lépésre történő megoldást, tipikus tanulói hibákat és javasolt pontozási útmutatót LaTeX formátumban!`,
+                        preview: {
+                            input: "Témakör: Másodfokú függvények és egyenletek (10. évfolyam)",
+                            outputHtml: `
+                                <div class="space-y-4">
+                                    <div class="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl">
+                                        <span class="text-xs font-bold uppercase tracking-wider text-emerald-700">1. Alapozó szint – Feladat</span>
+                                        <p class="mt-1 font-medium text-slate-800">Határozd meg az $f(x) = x^2 - 6x + 5$ függvény zérushelyeit és tengelypontjának koordinátáit!</p>
+                                    </div>
+                                    <div class="p-4 bg-amber-50/70 border border-amber-200 rounded-xl">
+                                        <span class="text-xs font-bold uppercase tracking-wider text-amber-700">2. Középszintű érettségi – Feladat</span>
+                                        <p class="mt-1 font-medium text-slate-800">Egy téglalap alakú iskolaudvar kerülete $64\\text{ m}$, területe $240\\text{ m}^2$. Mekkorák az udvar oldalai?</p>
+                                    </div>
+                                    <div class="p-4 bg-purple-50/70 border border-purple-200 rounded-xl">
+                                        <span class="text-xs font-bold uppercase tracking-wider text-purple-700">3. Emelt szint – Paraméteres feladat</span>
+                                        <p class="mt-1 font-medium text-slate-800">A valós $p$ paraméter mely értékeire lesz az $x^2 + (p-2)x + p + 1 = 0$ egyenletnek két különböző valós gyöke, amelyek négyzetösszege $10$?</p>
+                                        <div class="math-formula mt-3 text-sm text-slate-700">
+                                            <strong>Viète-formulák alkalmazása:</strong><br>
+                                            $x_1 + x_2 = -(p-2)$ és $x_1 \\cdot x_2 = p+1$<br>
+                                            $x_1^2 + x_2^2 = (x_1+x_2)^2 - 2x_1x_2 = (p-2)^2 - 2(p+1) = 10 \\Rightarrow p^2 - 6p - 8 = 0$
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                        }
+                    },
+                    {
+                        id: "matek-2",
+                        tool: "Interaktív Kódgenerálás / Canvas",
+                        toolIcon: "code-2",
+                        badgeColor: "bg-sky-100 text-sky-800 border-sky-200",
+                        title: "GeoGebra-szerű Függvénytranszformáció App",
+                        description: "A Gemini Canvas segítségével telepítés nélkül, böngészőben futó interaktív csúszkás függvényábrázolót készíthetsz órai kivetítéshez.",
+                        timeSaved: "60 perc / tananyag",
+                        prompt: `Készíts egyetlen HTML fájlban futó, modern, interaktív függvénytranszformáció-vizualizáló webalkalmazást középiskolai matematikaórára!
+Legyen benne:
+- Koordináta-rendszer ráccsal és tengelyfeliratokkal (HTML5 Canvas).
+- Választható alapfüggvény: másodfokú f(x)=x², szinusz f(x)=sin(x), vagy abszolútérték f(x)=|x|.
+- Interaktív csúszkák az a, b, c paraméterekhez: g(x) = a * f(x - b) + c.
+- Valós időben frissülő képletkijelzés, zérushelyek és szélsőértékek kiírása.
+- Magyar nyelvű felület, nagy kontrasztú színek kivetítőhöz.`,
+                        preview: {
+                            input: "Kérés: Szinuszfüggvény transzformációinak (amplitúdó, fáziseltolás) interaktív szemléltetése.",
+                            outputHtml: `
+                                <div class="bg-slate-900 text-white p-5 rounded-xl border border-slate-700">
+                                    <div class="flex items-center justify-between mb-3">
+                                        <span class="text-xs font-mono text-emerald-400">Canvas Élő Előnézet: g(x) = a · sin(x - b) + c</span>
+                                        <span class="text-xs bg-slate-800 px-2 py-1 rounded text-amber-300">Kivetítő-optimalizált</span>
+                                    </div>
+                                    <div class="bg-slate-950 rounded-lg p-4 border border-slate-800 text-center">
+                                        <svg viewBox="0 0 400 140" class="w-full h-36 mx-auto">
+                                            <!-- Tengelyek -->
+                                            <line x1="20" y1="70" x2="380" y2="70" stroke="#475569" stroke-width="1.5"/>
+                                            <line x1="200" y1="10" x2="200" y2="130" stroke="#475569" stroke-width="1.5"/>
+                                            <!-- Alap sin(x) szaggatott -->
+                                            <path d="M 20 70 Q 65 20, 110 70 T 200 70 T 290 70 T 380 70" fill="none" stroke="#64748b" stroke-width="1.5" stroke-dasharray="4 4"/>
+                                            <!-- Transzformált 1.5*sin(x - 0.5) -->
+                                            <path d="M 20 92 Q 80 -5, 135 70 T 245 70 T 355 70" fill="none" stroke="#10b981" stroke-width="3"/>
+                                            <text x="210" y="25" fill="#10b981" font-size="11" font-family="monospace">g(x) = 1.5·sin(x - π/6)</text>
+                                            <text x="210" y="120" fill="#94a3b8" font-size="10" font-family="monospace">f(x) = sin(x) (szaggatott)</text>
+                                        </svg>
+                                    </div>
+                                    <p class="text-xs text-slate-300 mt-3">A generált HTML fájlban a diákok vagy a tanár élőben húzhatják az <strong>a, b, c</strong> csúszkákat, és azonnal látják az értékkészlet változását.</p>
+                                </div>
+                            `
+                        }
+                    },
+                    {
+                        id: "matek-3",
+                        tool: "Multi-step Workflow & Elemzés",
+                        toolIcon: "file-search",
+                        badgeColor: "bg-amber-100 text-amber-800 border-amber-200",
+                        title: "Érettségi Feladatsor & Típushiba Elemző",
+                        description: "Feltöltött korábbi érettségi feladatokból vagy osztálydolgozat-eredményekből azonosítja a buktatókat, és célzott gyakorló feladatsort épít.",
+                        timeSaved: "40 perc / témazáró",
+                        prompt: `Elemezd az alábbi középszintű matematika érettségi feladatot: [FELADAT SZÖVEGE].
+1. Bontsd fel elemi részkompetenciákra (milyen definíció, képlet vagy logikai lépés kell hozzá).
+2. Sorold fel a 3 leggyakoribb tanulói tévesztést (pl. kikötések elhagyása, előjelhiba, mértékegység-váltás).
+3. Készíts egy 5 perces 'bemelegítő mini-tesztet' (3 gyors kérdés), amivel az óra elején ellenőrizni tudom, hogy a diákok tisztában vannak-e az előfeltételekkel!`,
+                        preview: {
+                            input: "Feladat: Logaritmikus egyenlet megoldása: log₂(x - 1) + log₂(x + 1) = 3",
+                            outputHtml: `
+                                <div class="space-y-3 text-slate-700">
+                                    <div class="p-3.5 bg-red-50 border border-red-200 rounded-xl">
+                                        <h4 class="font-bold text-red-800 text-xs uppercase mb-1">Kritikus tanulói buktatók:</h4>
+                                        <ul class="list-disc list-inside text-sm space-y-1 text-red-900">
+                                            <li><strong>Értelmezési tartomány (kikötés) elhagyása:</strong> Az $x = -3$ hamis gyök bent hagyása (mert $x - 1 > 0 \\Rightarrow x > 1$).</li>
+                                            <li><strong>Azonosság tévesztése:</strong> A logaritmusok összegét tévesen a tagok összegének logaritmusaként írják fel.</li>
+                                        </ul>
+                                    </div>
+                                    <div class="p-3.5 bg-slate-100 border border-slate-200 rounded-xl">
+                                        <h4 class="font-bold text-slate-800 text-xs uppercase mb-1">5 perces óra eleji diagnosztikai villámkérdés:</h4>
+                                        <p class="text-sm"><em>"Melyik valós $x$ számokra értelmezett a $\\log_2(x - 4)$ kifejezés? Miért nem lehet $x = 4$?"</em></p>
+                                    </div>
+                                </div>
+                            `
+                        }
+                    },
+                    {
+                        id: "matek-4",
+                        tool: "Kreatív Kontextus Generátor",
+                        toolIcon: "sparkles",
+                        badgeColor: "bg-purple-100 text-purple-800 border-purple-200",
+                        title: "Valós Életbeli, Diákközeli Szöveges Feladatok",
+                        description: "Száraz tankönyvi példák helyett kamaszokat érdeklő (sport, zenei streaming, pénzügyi tudatosság, gaming) szöveges feladatokat alkot.",
+                        timeSaved: "25 perc / óra",
+                        prompt: `Írj 4 darab kreatív, középiskolás diákok számára releváns szöveges matematika feladatot a(z) [TÉMAKÖR, pl. mértani sorozatok / kamatos kamat] témakörében.
+A kontextusok legyenek:
+1. Pénzügyi tudatosság (pl. diákmunka megtakarításának befektetése infláció mellett).
+2. Digitális világ / közösségi média (pl. egy videó megtekintéseinek exponenciális terjedése).
+3. Sport / fizikai teljesítmény.
+4. Környezetvédelem / fenntarthatóság.
+Minden feladathoz mellékeld a pontos matematikai modellt és a végeredményt!`,
+                        preview: {
+                            input: "Témakör: Mértani sorozatok és kamatos kamat (11. évfolyam)",
+                            outputHtml: `
+                                <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                                    <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">Kontextus: Pénzügyi tudatosság</span>
+                                    <p class="text-sm text-slate-800 font-medium">Bence a nyári diákmunkáján keresett $250\\,000\\text{ Ft}$-ot egy évi $6\\%$-os kamatozású megtakarítási számlára teszi (éves tőkésítéssel). Hány év múlva haladja meg a megtakarítása a $330\\,000\\text{ Ft}$-ot, ha közben nem nyúl hozzá?</p>
+                                    <div class="math-formula text-xs text-slate-700 mt-2">
+                                        $250\\,000 \\cdot 1{,}06^n > 330\\,000 \\Rightarrow 1{,}06^n > 1{,}32 \\Rightarrow n > \\frac{\\ln(1{,}32)}{\\ln(1{,}06)} \\approx 4{,}76 \\Rightarrow 5\\text{ év múlva.}$
+                                    </div>
+                                </div>
+                            `
+                        }
+                    }
+                ]
+            },
+
+            fizika: {
+                title: "Fizika Szaktanári Eszköztár",
+                subtitle: "Interaktív HTML5 Canvas szimulációk, mérési adatelemzés, kísérleti jegyzőkönyvek és szemléletes ábrák.",
+                icon: "zap",
+                accent: "amber",
+                cards: [
+                    {
+                        id: "fizika-1",
+                        tool: "Interaktív Kódgenerálás / Canvas",
+                        toolIcon: "play-circle",
+                        badgeColor: "bg-amber-100 text-amber-800 border-amber-200",
+                        title: "Interaktív Fizikai Szimuláció (Ferde hajítás / Inga)",
+                        description: "Olyan jelenségekhez, amelyeket tanteremben nehéz pontosan mérni, másodpercek alatt készíthetsz paraméterezhető HTML5 szimulációt.",
+                        timeSaved: "90 perc / szimuláció",
+                        prompt: `Készíts egy egyetlen HTML fájlban futó, látványos interaktív fizika szimulációt a ferde hajítás vizsgálatához középiskolai fizikaórára!
+Követelmények:
+- HTML5 Canvas animációval, valós idejű sebességvektorokkal (vx, vy komponensek külön színnel).
+- Állítható csúszkák: kezdősebesség (v0: 5–50 m/s), hajítási szög (α: 0–90°), és bolygó választó (Föld g=9,81 m/s², Hold g=1,62 m/s², Mars g=3,71 m/s²).
+- Rajzolja ki a röppálya ívét, és írja ki a maximális emelkedési magasságot (H), a hajítás távolságát (D) és a repülési időt (t).
+- Magyar nyelvű, letisztult sötét hátterű felület.`,
+                        preview: {
+                            input: "Kérés: Ferde hajítás élő mini-szimulátor kipróbálása itt a böngészőben!",
+                            isInteractiveSim: true,
+                            outputHtml: `
+                                <div class="bg-navy-900 text-white p-4 rounded-xl border border-slate-700">
+                                    <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+                                        <span class="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                                            Élő Mini-Szimuláció (Próbáld ki!)
+                                        </span>
+                                        <div class="flex items-center gap-3 text-xs">
+                                            <label class="flex items-center gap-1">Szög: <span id="sim-angle-val" class="font-mono text-emerald-400">45°</span>
+                                                <input type="range" id="sim-angle" min="15" max="80" value="45" class="w-20 accent-emerald-500 cursor-pointer">
+                                            </label>
+                                            <button onclick="launchSimProjectile()" class="bg-amber-500 hover:bg-amber-600 text-navy-950 font-bold px-3 py-1 rounded-lg transition cursor-pointer">
+                                                Kilövés
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <canvas id="physics-sim-canvas" class="w-full h-44 bg-slate-950 rounded-lg border border-slate-800 block"></canvas>
+                                    <div id="sim-readout" class="grid grid-cols-3 gap-2 mt-3 text-center text-xs bg-slate-800/80 p-2 rounded-lg font-mono">
+                                        <div>v₀ = <span class="text-white">25 m/s</span></div>
+                                        <div>Max magasság: <span id="sim-h" class="text-emerald-400">15.9 m</span></div>
+                                        <div>Távolság: <span id="sim-d" class="text-amber-400">63.7 m</span></div>
+                                    </div>
+                                </div>
+                            `
+                        }
+                    },
+                    {
+                        id: "fizika-2",
+                        tool: "Adatfeldolgozás & Sheets Integráció",
+                        toolIcon: "table",
+                        badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-200",
+                        title: "Tanulói Mérési Jegyzőkönyv & Hibaszámítás Elemző",
+                        description: "A diákok által mért nyers adatsorokból (pl. rugóállandó vagy szabadesés mérése) kiszámítja az átlagot, az abszolút/relatív hibát és szövegesen értékeli a mérést.",
+                        timeSaved: "35 perc / laboróra",
+                        prompt: `Itt vannak egy tanulói csoport fizika labor mérésének nyers adatai (fonálinga lengésidejének mérése különböző fonálhosszaknál):
+[ADATOK BEILLESZTÉSE, pl. l=0.5m -> T=1.45s; l=1.0m -> T=2.03s; l=1.5m -> T=2.48s].
+Feladatok:
+1. Számold ki minden mérésből a nehézségi gyorsulás (g) értékét a T = 2π·√(l/g) képlet alapján!
+2. Határozd meg a mért g értékek átlagát és a 9,81 m/s² elméleti értéktől való százalékos relatív eltérését!
+3. Írj egy rövid, bátorító, de szakmailag pontos visszajelzést a diákoknak a lehetséges szisztematikus mérési hibákról (pl. reakcióidő, nagy kitérési szög)!`,
+                        preview: {
+                            input: "Mérési adatok: l = 0,80 m esetén 10 lengés ideje t = 18,2 s (T = 1,82 s).",
+                            outputHtml: `
+                                <div class="space-y-3 text-sm">
+                                    <div class="math-formula text-slate-800">
+                                        <strong>Számított érték:</strong> $g = \\frac{4\\pi^2 \\cdot l}{T^2} = \\frac{4\\pi^2 \\cdot 0{,}80}{1{,}82^2} \\approx 9{,}53\\text{ m/s}^2$<br>
+                                        <strong>Relatív hiba:</strong> $\\frac{|9{,}53 - 9{,}81|}{9{,}81} \\approx 2{,}85\\%$ (Kiváló pontosságú tanulói mérés!)
+                                    </div>
+                                    <div class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl text-slate-700">
+                                        <strong>Tanári visszajelzés javaslat:</strong> <em>"Szép munka! A 3% alatti eltérés pontos stopperkezelésre utal. A kismértékű alulbecslés oka valószínűleg az, hogy a fonál tömegét elhanyagoltuk, vagy a stopper indításakor a reakcióidő miatt néhány tizedmásodperccel hosszabb időt mértetek."</em>
+                                    </div>
+                                </div>
+                            `
+                        }
+                    },
+                    {
+                        id: "fizika-3",
+                        tool: "Vizuális Képalkotás & Ábragenerálás",
+                        toolIcon: "image",
+                        badgeColor: "bg-sky-100 text-sky-800 border-sky-200",
+                        title: "Tiszta, Feliratozható Fizikai Ábrák & SVG Vázlatok",
+                        description: "Dolgozatokhoz és prezentációkhoz vektoros (SVG) lejtős, optikai lencsés vagy áramköri rajzokat készít pixeles szkennelt képek helyett.",
+                        timeSaved: "30 perc / dolgozat",
+                        prompt: `Készíts egy tiszta, fekete-fehér, nyomtatásra optimalizált SVG ábrát egy fizika dolgozathoz!
+Az ábra tartalma:
+- Egy 30 fokos hajlásszögű lejtő (szögjelöléssel: α).
+- A lejtőn lévő 'm' tömegű téglatest.
+- A test tömegközéppontjából induló erővektorok: nehézségi erő (G) függőlegesen lefelé, nyomóerő (F_ny) a lejtőre merőlegesen, és súrlódási erő (F_s) a lejtővel párhuzamosan felfelé.
+- Legyenek jól olvasható feliratok és vektornyilak.`,
+                        preview: {
+                            input: "Kérés: Lejtőn nyugvó test erővektorainak SVG ábrája dolgozathoz.",
+                            outputHtml: `
+                                <div class="bg-white p-4 rounded-xl border border-slate-300 text-center">
+                                    <svg viewBox="0 0 360 190" class="w-full max-w-md mx-auto h-44">
+                                        <!-- Lejtő -->
+                                        <polygon points="40,160 320,160 320,40" fill="#f1f5f9" stroke="#0f172a" stroke-width="2"/>
+                                        <text x="95" y="152" font-size="13" font-weight="bold" fill="#0f172a">α</text>
+                                        <!-- Test a lejtőn -->
+                                        <g transform="translate(180, 100) rotate(-23.2)">
+                                            <rect x="-25" y="-30" width="50" height="30" fill="#e2e8f0" stroke="#0f172a" stroke-width="2"/>
+                                            <text x="-6" y="-11" font-size="13" font-weight="bold" fill="#0f172a">m</text>
+                                            <!-- Nyomóerő F_ny -->
+                                            <line x1="0" y1="-15" x2="0" y2="-75" stroke="#059669" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+                                            <text x="6" y="-65" font-size="12" font-weight="bold" fill="#059669">F_ny</text>
+                                            <!-- Súrlódási erő F_s -->
+                                            <line x1="0" y1="-15" x2="65" y2="-15" stroke="#d97706" stroke-width="2.5" marker-end="url(#arrow-amber)"/>
+                                            <text x="45" y="-22" font-size="12" font-weight="bold" fill="#d97706">F_s</text>
+                                        </g>
+                                        <!-- Nehézségi erő G (függőleges) -->
+                                        <line x1="174" y1="86" x2="174" y2="155" stroke="#dc2626" stroke-width="2.5" marker-end="url(#arrow-red)"/>
+                                        <text x="155" y="148" font-size="13" font-weight="bold" fill="#dc2626">G</text>
+                                        <defs>
+                                            <marker id="arrow-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#dc2626"/></marker>
+                                            <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#059669"/></marker>
+                                            <marker id="arrow-amber" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L0,6 L6,3 z" fill="#d97706"/></marker>
+                                        </defs>
+                                    </svg>
+                                    <p class="text-xs text-slate-500 mt-1">Tiszta, tűéles SVG vektorábra – azonnal beilleszthető Wordbe vagy Google Dokumentumokba.</p>
+                                </div>
+                            `
+                        }
+                    },
+                    {
+                        id: "fizika-4",
+                        tool: "Custom Skill / Gem",
+                        toolIcon: "lightbulb",
+                        badgeColor: "bg-purple-100 text-purple-800 border-purple-200",
+                        title: "Hétköznapi Jelenségek & 'Mi történne, ha...' Kérdések",
+                        description: "Modern fizika (relativitáselmélet, kvantumfizika, asztrofizika) vagy termodinamika órákra gondolatébresztő vitaindítókat állít össze.",
+                        timeSaved: "25 perc / óra",
+                        prompt: `Készíts 3 darab elgondolkodtató, vitaindító 'Mi történne, ha...' jellegű fizikai kérdést középiskolás diákoknak a(z) [TÉMAKÖR, pl. termodinamika / speciális relativitáselmélet] témakörből!
+Minden kérdéshez adj meg:
+- Egy rövid, figyelemfelkeltő felvetést (amire a diákok tippelhetnek).
+- A pontos fizikai magyarázatot középiskolai szinten.
+- Egy kapcsolódó érettségi számítási alapelvet.`,
+                        preview: {
+                            input: "Témakör: Termodinamika és halmazállapot-változások",
+                            outputHtml: `
+                                <div class="p-4 bg-amber-50/60 border border-amber-200 rounded-xl space-y-2 text-sm">
+                                    <h4 class="font-bold text-amber-900">Vitaindító: "Lehűti-e a szobát, ha nyitva hagyjuk a működő hűtőszekrény ajtaját?"</h4>
+                                    <p class="text-slate-700"><strong>Fizikai magyarázat:</strong> Nem, sőt felmelegíti! A hűtőszekrény hőszivattyúként működik: a belsejéből elvont $Q_2$ hőt és a kompresszor által felvett $W$ elektromos munkát együttesen adja le a hátoldali hőcserélőn keresztül ugyanabba a zárt szobába ($Q_1 = Q_2 + W > Q_2$).</p>
+                                </div>
+                            `
+                        }
+                    }
+                ]
+            },
+
+            ofo: {
+                title: "Osztályfőnöki Munkatárs Eszköztár",
+                subtitle: "Szülői értekezlet vázlatok, Kréta-kompatibilis értékelések, osztálykirándulás tervezés és empatikus kommunikáció.",
+                icon: "users",
+                accent: "sky",
+                cards: [
+                    {
+                        id: "ofo-1",
+                        tool: "Custom Skill / Gem",
+                        toolIcon: "mail",
+                        badgeColor: "bg-sky-100 text-sky-800 border-sky-200",
+                        title: "Empatikus, Konstruktív Szülői Levél Író",
+                        description: "Kényes helyzetekben (romló tanulmányi eredmény, igazolatlan órák, viselkedési gondok) higgadt, partneri hangvételű Kréta-üzenetet fogalmaz.",
+                        timeSaved: "30 perc / levél",
+                        prompt: `Viselkedj tapasztalt, empatikus és határozott magyar középiskolai osztályfőnökként! Fogalmazz meg egy Kréta-üzenetet egy szülőnek az alábbi helyzetről:
+- Tanuló keresztneve: [NÉV]
+- Probléma: [PL. az utóbbi 3 hétben 4 matematika és 2 fizika házi feladat hiányzott, és az utolsó témazáró dolgozat gyengébben sikerült, miközben korábban szorgalmas volt].
+- Cél: Ne vádaskodjunk, hanem közös megoldást keressünk, jelezzük a támogatási szándékot (korrepetálás/fogadóóra), és kérjünk visszajelzést, van-e a háttérben valamilyen nehézség.
+Hangnem: tisztelettudó, támogató, partneri.`,
+                        preview: {
+                            input: "Tanuló: Marci (10.B) – romló jegyek és elmaradó házi feladatok az utóbbi hetekben.",
+                            outputHtml: `
+                                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 text-sm text-slate-700 space-y-2.5 font-sans">
+                                    <p class="font-semibold text-navy-900">Tárgy: Érdeklődés Marci tanulmányi előmenetelével kapcsolatban – közös egyeztetés</p>
+                                    <p>Kedves Szülők!</p>
+                                    <p>Azért keresem Önöket, mert az elmúlt hetekben azt tapasztaltam, hogy Marci a megszokottnál kevesebb energiát fordít a felkészülésre, több házi feladata elmaradt, és a legutóbbi témazárók sem úgy sikerültek, ahogyan azt a képességei alapján megszoktuk tőle.</p>
+                                    <p>Szeretnék meggyőződni arról, hogy minden rendben van-e körülötte, és nem áll-e valamilyen fáradtság vagy elakadás a háttérben. Szívesen segítek neki a felzárkózásban a szerdai fogadóórám keretében, hogy ne halmozódjon fel lemaradás.</p>
+                                    <p>Kérem, jelezzék, mikor tudnánk röviden egyeztetni telefonon vagy személyesen!</p>
+                                    <p>Üdvözlettel,<br><em>[Tanár neve], osztályfőnök</em></p>
+                                </div>
+                            `
+                        }
+                    },
+                    {
+                        id: "ofo-2",
+                        tool: "Táblázatkezelő & Dokumentum Integráció",
+                        toolIcon: "map-pin",
+                        badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-200",
+                        title: "Osztálykirándulás Útiterv & Költségvetés Tervező",
+                        description: "Percek alatt összeállítja a 2–3 napos osztálykirándulás részletes programját, diák- és tanárbarát költségvetési táblázatát és szülői tájékoztatóját.",
+                        timeSaved: "120 perc / kirándulás",
+                        prompt: `Tervezz meg egy 2 napos (1 éjszakás) tavaszi osztálykirándulást 28 fős 11. évfolyamos osztály és 2 kísérőtanár számára [ÚTI CÉL, pl. Pécs és a Mecsek] térségébe!
+Készíts:
+1. Órára lebontott, reális útitervet vonatos/buszos közlekedéssel és esőnap-alternatívával.
+2. Költségvetési táblázatot (szállás, étkezés, belépők, tartalékkeret) egy főre vetítve, diákigazolványos kedvezményekkel.
+3. Egy rövid, lelkesítő szülői tájékoztató levelet a jelentkezési és befizetési határidőkkel.`,
+                        preview: {
+                            input: "Úti cél: Pécs és Mecsek, 28 diák + 2 tanár, 2 nap / 1 éjszaka.",
+                            outputHtml: `
+                                <div class="space-y-3 text-sm">
+                                    <div class="overflow-x-auto">
+                                        <table class="w-full text-left border-collapse border border-slate-300 text-xs">
+                                            <thead>
+                                                <tr class="bg-navy-900 text-white">
+                                                    <th class="p-2 border border-slate-600">Költségtétel</th>
+                                                    <th class="p-2 border border-slate-600">Diákár / fő</th>
+                                                    <th class="p-2 border border-slate-600">Megjegyzés</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr class="bg-white">
+                                                    <td class="p-2 border border-slate-200 font-medium">Vonatjegy (oda-vissza)</td>
+                                                    <td class="p-2 border border-slate-200 font-mono">0 Ft / 2 400 Ft</td>
+                                                    <td class="p-2 border border-slate-200">Országbérlettel díjmentes!</td>
+                                                </tr>
+                                                <tr class="bg-slate-50">
+                                                    <td class="p-2 border border-slate-200 font-medium">Ifjúsági szállás (1 éj + reggeli)</td>
+                                                    <td class="p-2 border border-slate-200 font-mono">9 500 Ft</td>
+                                                    <td class="p-2 border border-slate-200">2 kísérőtanár ingyenes</td>
+                                                </tr>
+                                                <tr class="bg-white">
+                                                    <td class="p-2 border border-slate-200 font-medium">Zsolnay Negyed & TV-torony</td>
+                                                    <td class="p-2 border border-slate-200 font-mono">3 800 Ft</td>
+                                                    <td class="p-2 border border-slate-200">Csoportos diákjegy</td>
+                                                </tr>
+                                                <tr class="bg-emerald-50 font-bold">
+                                                    <td class="p-2 border border-slate-200">Összesen (tartalékkal)</td>
+                                                    <td class="p-2 border border-slate-200 font-mono text-emerald-700">15 500 Ft / fő</td>
+                                                    <td class="p-2 border border-slate-200">2 részletben fizethető</td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            `
+                        }
+                    },
+                    {
+                        id: "ofo-3",
+                        tool: "Adatfeldolgozás & Docs Integráció",
+                        toolIcon: "award",
+                        badgeColor: "bg-amber-100 text-amber-800 border-amber-200",
+                        title: "Kréta Szöveges Értékelések & Félévi Összegzés",
+                        description: "A tanulók jegyei, szorgalma és közösségi munkája alapján egyedi, személyre szabott szöveges értékeléseket generál az egész osztálynak.",
+                        timeSaved: "90 perc / félév",
+                        prompt: `Írj személyre szabott, 3-4 mondatos félévi szöveges értékelést a Kréta rendszerbe az alábbi 3 tanulóról a megadott kulcsszavak alapján. Legyen minden értékelés egyedi, motiváló, és emelje ki az erősségeket is:
+1. Anna: átlag 4.8, matek versenyző, csendes, segítőkész, közösségi munkában aktív.
+2. Bálint: átlag 3.2, fizikából kiemelkedő, humán tárgyakból lusta, jó humorú, néha késik.
+3. Csenge: átlag 4.1, sokat fejlődött félév óta, szorgalmas, DÖK képviselő.`,
+                        preview: {
+                            input: "3 tanuló kulcsszavai alapján Kréta-kompatibilis értékelés generálása.",
+                            outputHtml: `
+                                <div class="space-y-2.5 text-sm">
+                                    <div class="p-3 bg-white border border-slate-200 rounded-xl">
+                                        <span class="font-bold text-navy-900">Anna:</span>
+                                        <p class="text-slate-700 mt-1"><em>"Anna az első félévben példamutató szorgalommal és kiemelkedő tanulmányi eredménnyel (4,8) teljesített. Különösen dicséretes a matematika versenyeken nyújtott teljesítménye, valamint az a csendes, figyelmes segítőkészség, amellyel osztálytársait támogatja."</em></p>
+                                    </div>
+                                    <div class="p-3 bg-white border border-slate-200 rounded-xl">
+                                        <span class="font-bold text-navy-900">Bálint:</span>
+                                        <p class="text-slate-700 mt-1"><em>"Bálint jó humorával és nyitottságával meghatározó tagja az osztályközösségnek, természettudományos területen – különösen fizikából – kiváló képességeket mutat. A második félévben a rendszeresebb felkészülés és a reggeli pontosság segítené abban, hogy minden tantárgyból a valódi tudásának megfelelő eredményt érje el."</em></p>
+                                    </div>
+                                </div>
+                            `
+                        }
+                    },
+                    {
+                        id: "ofo-4",
+                        tool: "Osztályfőnöki Óra Tervező",
+                        toolIcon: "message-circle",
+                        badgeColor: "bg-purple-100 text-purple-800 border-purple-200",
+                        title: "Interaktív Osztályfőnöki Óravázlat & Konfliktuskezelés",
+                        description: "Digitális jóllét, pályaorientáció vagy osztályon belüli klikkesedés témakörben azonnal levezethető, gyakorlatias 45 perces óravázlatot készít.",
+                        timeSaved: "40 perc / óra",
+                        prompt: `Tervezz meg egy interaktív, 45 perces osztályfőnöki órát 10. évfolyamos gimnazistáknak 'Digitális egyensúly, AI használat és vizsgastressz kezelése' témában!
+Szerkezet:
+- 5 perc jégtörő villámkérdés (mozgásos vagy szavazós).
+- 15 perc kiscsoportos szituációs gyakorlat (3 valós középiskolai dilemma).
+- 15 perc közös feldolgozás és konkrét tanulási technikák (pl. Pomodoro, aktív felidézés).
+- 10 perc lezárás és személyes vállalás.`,
+                        preview: {
+                            input: "Téma: Vizsgastressz és digitális figyelemelterelés kezelése (10. évfolyam)",
+                            outputHtml: `
+                                <div class="p-4 bg-purple-50/60 border border-purple-200 rounded-xl text-sm space-y-2">
+                                    <h4 class="font-bold text-purple-900">Kiscsoportos dilemma-kártya példa:</h4>
+                                    <p class="text-slate-700"><em>"Holnap matek témazáró, este 9 óra van. Még két témakört át kellene nézned, de az osztálycsoportban folyamatosan pörögnek a üzenetek, és már fáradt vagy. Mit teszel a következő 60 percben, hogy a legtöbbet hozd ki belőle?"</em></p>
+                                    <p class="text-xs text-purple-800 font-medium">Feldolgozási fókusz: Értesítések némítása + 2x25 perc fókuszált feladatmegoldás + alvás fontossága a memóriakonszolidációban.</p>
+                                </div>
+                            `
+                        }
+                    }
+                ]
+            },
+
+            workflow: {
+                title: "Komplex Multi-Step Workflow-k (Agents & Skills)",
+                subtitle: "Hogyan kapcsolódnak össze az eszközök egymás utáni lépésekben, hogy egyetlen bemenetből teljes tanári csomag szülessen?",
+                icon: "git-merge",
+                accent: "purple",
+                cards: [
+                    {
+                        id: "wf-1",
+                        tool: "Multi-Step Agent Workflow",
+                        toolIcon: "layers",
+                        badgeColor: "bg-purple-100 text-purple-800 border-purple-200",
+                        title: "1. Láncolt Dolgozat-Életciklus Workflow",
+                        description: "Egyetlen témakör megadásával 4 lépésben végigviszi a folyamatot: Feladatsor → Javítókulcs → Felzárkóztató gyakorló a gyengébben teljesítőknek → Szülői tájékoztató.",
+                        timeSaved: "110 perc / témazáró",
+                        prompt: `Futtass le egy 4 lépéses tanári munkafolyamatot a(z) [TÉMAKÖR, pl. Elektromos áramkörök] témakörében!
+LÉPÉS 1 (Tervező Agent): Állíts össze egy 45 perces témazáró dolgozatot (A és B csoport, egyenként 40 pont).
+LÉPÉS 2 (Javító Skill): Készíts hozzá részletes pontozási útmutatót, kiemelve a részpontszámokat.
+LÉPÉS 3 (Differenciáló Agent): Készíts egy 1 oldalas 'Pótló és Felzárkóztató Munkalapot' azoknak, akik 50% alatt teljesítenek, rövid elméleti mankóval.
+LÉPÉS 4 (Osztályfőnöki Kommunikátor): Írj egy rövid Kréta-sablon üzenetet, amivel a szülőket értesíteni tudom az újraírás lehetőségéről.`,
+                        preview: {
+                            input: "Láncolt munkafolyamat futtatása: Elektromos áramkörök témazáró teljes csomag.",
+                            outputHtml: `
+                                <div class="space-y-3 text-sm">
+                                    <div class="flex items-center gap-3 p-3 bg-slate-100 rounded-xl border-l-4 border-emerald-500">
+                                        <span class="font-bold text-emerald-700">1. Lépés:</span>
+                                        <span>A és B csoportos dolgozat (Ohm-törvény, soros/párhuzamos kapcsolás, teljesítmény).</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 p-3 bg-slate-100 rounded-xl border-l-4 border-sky-500">
+                                        <span class="font-bold text-sky-700">2. Lépés:</span>
+                                        <span>Részpontszámos javítókulcs (pl. képlet felírása: 1p, átrendezés: 1p, behelyettesítés: 1p).</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 p-3 bg-slate-100 rounded-xl border-l-4 border-amber-500">
+                                        <span class="font-bold text-amber-700">3. Lépés:</span>
+                                        <span>Felzárkóztató munkalap mintafeladattal és lépésenkénti iránymutatással.</span>
+                                    </div>
+                                    <div class="flex items-center gap-3 p-3 bg-slate-100 rounded-xl border-l-4 border-purple-500">
+                                        <span class="font-bold text-purple-700">4. Lépés:</span>
+                                        <span>Kréta-üzenet sablon a korrepetálás és a javító dolgozat időpontjáról.</span>
+                                    </div>
+                                </div>
+                            `
+                        }
+                    },
+                    {
+                        id: "wf-2",
+                        tool: "Szülői Értekezlet & Adat Elemző Workflow",
+                        toolIcon: "presentation",
+                        badgeColor: "bg-emerald-100 text-emerald-800 border-emerald-200",
+                        title: "2. Szülői Értekezlet Teljes Előkészítő Csomag",
+                        description: "Az osztály anonimizált tanulmányi és hiányzási adataiból forgatókönyvet, prezentációs vázlatot és egyéni fogadóórai jegyzeteket készít.",
+                        timeSaved: "90 perc / szülői",
+                        prompt: `Készíts teljes körű szülői értekezlet csomagot egy 11. évfolyamos osztály számára az alábbi sarokszámok alapján:
+- Osztályátlag: [PL. 4.12], igazolatlan órák száma csökkent, közelgő mérföldkő: előrehozott érettségik és pályaorientáció.
+Generáld le egymás után:
+1. A 45 perces szülői értekezlet időzített forgatókönyvét.
+2. 5 prezentációs dia szövegét (rövid, lényegre törő pontokkal).
+3. A szülői értekezlet után kiküldhető írásos összefoglalót a távolmaradó szülők számára!`,
+                        preview: {
+                            input: "11. évfolyam félévi szülői értekezlet előkészítése (osztályátlag: 4,12).",
+                            outputHtml: `
+                                <div class="space-y-3 text-sm">
+                                    <div class="p-3.5 bg-navy-900 text-white rounded-xl">
+                                        <h4 class="font-bold text-amber-400 text-xs uppercase mb-2">Generált Dia #3: Fókuszban a 11. évfolyam</h4>
+                                        <ul class="list-disc list-inside space-y-1 text-slate-200 text-xs">
+                                            <li><strong>Osztályátlag:</strong> 4,12 (0,18-as javulás tavalyhoz képest!)</li>
+                                            <li><strong>Előrehozott érettségi jelentkezés:</strong> Határidő és tantárgyválasztási tanácsadás.</li>
+                                            <li><strong>Közösségi szolgálat (50 óra):</strong> Jelenlegi állás – az osztály 78%-a már teljesítette a felét.</li>
+                                        </ul>
+                                    </div>
+                                    <p class="text-xs text-slate-600">A workflow végén egy kattintással másolható a Kréta-emlékeztető levél is a hiányzó szülőknek.</p>
+                                </div>
+                            `
+                        }
+                    },
+                    {
+                        id: "wf-3",
+                        tool: "Tantárgyközi Projekt Workflow",
+                        toolIcon: "atom",
+                        badgeColor: "bg-amber-100 text-amber-800 border-amber-200",
+                        title: "3. Matek–Fizika Tantárgyközi Projekt Tervező",
+                        description: "Összeköti a két szaktárgyadat: például a deriválás és a kinematika, vagy a exponenciális függvények és a radioaktív bomlás közös projektjét építi fel.",
+                        timeSaved: "75 perc / projekt",
+                        prompt: `Tervezz egy 2 tanórás, tantárgyközi (Matematika + Fizika) projektfeladatot 11-12. évfolyamos diákoknak a [TÉMA, pl. Radioaktív bomlás és exponenciális függvények / Sebesség-idő grafikon területe és az út] témakörében!
+Tartalmazza:
+1. A matematikai háttér rövid összefoglalását.
+2. A fizikai kísérlet vagy szimulációs adatgyűjtés leírását.
+3. Egy közös feladatlapot, ahol a matematikai függvényillesztésből fizikai állandót (pl. felezési időt) kell meghatározni.
+4. Értékelési rubrikát (szempontsort).`,
+                        preview: {
+                            input: "Tantárgyközi híd: Exponenciális függvények (Matek) + Radioaktív bomlás (Fizika).",
+                            outputHtml: `
+                                <div class="p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl text-sm space-y-2">
+                                    <h4 class="font-bold text-emerald-900">Projektfeladat: A Cézium-137 felezési idejének meghatározása</h4>
+                                    <p class="text-slate-700">A diákok egy Geiger–Müller-számláló szimulált mérési adataiból fél-logaritmikus ábrázolással (Matematika) meghatározzák a meredekséget, majd ebből kiszámítják a $\\lambda$ bomlási állandót és a $T_{1/2} = \\frac{\\ln 2}{\\lambda}$ felezési időt (Fizika).</p>
+                                </div>
+                            `
+                        }
+                    },
+                    {
+                        id: "wf-4",
+                        tool: "Gem (Custom Skill) Architektúra",
+                        toolIcon: "cpu",
+                        badgeColor: "bg-sky-100 text-sky-800 border-sky-200",
+                        title: "4. Saját 'Tanári Személyi Asszisztens' Gem Létrehozása",
+                        description: "Rendszerutasítás (System Prompt), amelyet egyszer elmentsz a Gem-ek közé, és onnantól ismeri az iskolád típusát, a tankönyveidet és a stílusodat.",
+                        timeSaved: "15 perc / minden használat",
+                        prompt: `Ezt a szöveget másold be a Gemini 'Új Gem létrehozása' (Custom Instructions) mezőjébe:
+"Te egy magyar középiskolai matematika–fizika szakos tanár és osztályfőnök személyi asszisztense vagy.
+Alapelveid:
+- Minden matematikai és fizikai képletet szabványos magyar jelölésekkel (pl. v, s, t, F, m, g=9,81 m/s²) és tiszta LaTeX formátumban írj.
+- Tartsd szem előtt a magyar NAT és a közép-/emelt szintű érettségi követelményeit.
+- Szülői leveleknél és osztályfőnöki anyagoknál használj higgadt, partneri, megoldásorientált magyar nyelvezetet.
+- Ha feladatot kérek, mindig adj meg részletes megoldókulcsot is, hacsak nem kérem az ellenkezőjét."`,
+                        preview: {
+                            input: "Rendszerszintű beállítás: Állandó Tanári Gem létrehozása.",
+                            outputHtml: `
+                                <div class="p-4 bg-slate-900 text-slate-200 rounded-xl text-sm space-y-2">
+                                    <div class="flex items-center gap-2 text-emerald-400 font-bold">
+                                        <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                                        <span>Miért érdemes ezt Gem-ként elmenteni?</span>
+                                    </div>
+                                    <p class="text-xs leading-relaxed text-slate-300">Nem kell minden egyes beszélgetés elején leírnod, hogy középiskolában tanítasz, magyar jelöléseket használsz, és kérsz javítókulcsot. Elég annyit írnod: <em>"Írj egy 20 perces röpdolgozatot a körmozgásból!"</em> – és a Gem azonnal a saját elvárásaid szerint dolgozik.</p>
+                                </div>
+                            `
+                        }
+                    }
+                ]
+            }
+        };
+
+        // ==========================================
+        // 2. KALKULÁTOR FELADATOK ADATBÁZISA
+        // ==========================================
+        const weeklyTasks = [
+            {
+                id: "t1",
+                label: "2 témazáró vagy röpdolgozat összeállítása (A/B csoport + javítókulcs)",
+                category: "Matek / Fizika",
+                tradMinutes: 120,
+                aiMinutes: 30,
+                workflowTip: "Használd a '3 Szintű Differenciált Feladatsor' Gem-et: kérd egyszerre az A és B csoportot részpontszámos javítókulccsal."
+            },
+            {
+                id: "t2",
+                label: "1 interaktív órai szemléltetés vagy fizikai szimuláció készítése",
+                category: "Fizika / Matek",
+                tradMinutes: 90,
+                aiMinutes: 15,
+                workflowTip: "Futtass egy Canvas promptot: generálj egyetlen HTML fájlban futó csúszkás szimulációt vagy függvényábrázolót kivetítőre."
+            },
+            {
+                id: "t3",
+                label: "Laboratóriumi mérés vagy érettségi feladatsor elemzése",
+                category: "Szaktárgyi",
+                tradMinutes: 60,
+                aiMinutes: 15,
+                workflowTip: "Illeszd be a nyers mérési adatokat vagy feladatot, és kérj hibaszámítást + 5 perces óra eleji diagnosztikai villámtesztet."
+            },
+            {
+                id: "t4",
+                label: "Szülői kommunikáció, Kréta-üzenetek és egyéni visszajelzések írása",
+                category: "Osztályfőnök",
+                tradMinutes: 75,
+                aiMinutes: 20,
+                workflowTip: "Add meg kulcsszavakban a tanulók helyzetét, és a Gemini megfogalmazza a partneri, Kréta-kompatibilis üzeneteket."
+            },
+            {
+                id: "t5",
+                label: "Osztályprogram, kirándulás vagy szülői értekezlet szervezése",
+                category: "Osztályfőnök",
+                tradMinutes: 110,
+                aiMinutes: 25,
+                workflowTip: "Indítsd el a Multi-step Workflow-t: egy kérésből megkapod az útitervet, a költségvetési táblázatot és a szülői tájékoztatót."
+            },
+            {
+                id: "t6",
+                label: "Osztályfőnöki óra vagy tantárgyközi projekt tervezése",
+                category: "Komplex",
+                tradMinutes: 60,
+                aiMinutes: 15,
+                workflowTip: "Generálj 45 perces interaktív óravázlatot kiscsoportos szituációs kártyákkal és értékelési szempontsorral."
+            }
+        ];
+
+        // ==========================================
+        // 3. ÁLLAPOTKEZELÉS ÉS RENDERELÉS
+        // ==========================================
+        let currentRole = 'matek';
+        let selectedTaskIds = new Set(['t1', 't2', 't4']); // Alapértelmezett kijelölés az azonnali élményért
+        let simAnimationId = null;
+
+        function switchRole(roleKey) {
+            currentRole = roleKey;
+            
+            // Tab gombok stílusának frissítése
+            document.querySelectorAll('.role-tab').forEach(btn => {
+                btn.classList.remove('tab-active');
+                btn.classList.add('text-slate-600', 'hover:bg-slate-100');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            const activeBtn = document.getElementById(`tab-${roleKey}`);
+            activeBtn.classList.add('tab-active');
+            activeBtn.classList.remove('text-slate-600', 'hover:bg-slate-100');
+            activeBtn.setAttribute('aria-selected', 'true');
+
+            renderRoleContent(roleKey);
+        }
+
+        function renderRoleContent(roleKey) {
+            const data = rolesData[roleKey];
+            const banner = document.getElementById('role-banner');
+            const container = document.getElementById('cards-container');
+
+            // Banner frissítése
+            banner.innerHTML = `
+                <div class="flex items-start sm:items-center gap-4">
+                    <div class="p-3 rounded-2xl bg-navy-900 text-emerald-400 shrink-0">
+                        <i data-lucide="${data.icon}" class="w-7 h-7"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-xl sm:text-2xl font-bold text-navy-900">${data.title}</h2>
+                        <p class="text-slate-600 text-sm sm:text-base mt-0.5">${data.subtitle}</p>
+                    </div>
+                </div>
+                <div class="shrink-0">
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-semibold">
+                        <i data-lucide="layers" class="w-3.5 h-3.5 text-emerald-600"></i>
+                        <span>${data.cards.length} gyakorlati eszköz</span>
+                    </span>
+                </div>
+            `;
+
+            // Kártyák újrarenderelése animációval
+            container.classList.remove('animate-fade-in');
+            void container.offsetWidth; // Reflow trigger
+            container.classList.add('animate-fade-in');
+
+            container.innerHTML = data.cards.map(card => `
+                <article class="bg-white rounded-2xl border border-slate-200/90 p-6 shadow-sm hover:shadow-lg transition-all duration-200 flex flex-col justify-between">
+                    <div>
+                        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border ${card.badgeColor}">
+                                <i data-lucide="${card.toolIcon}" class="w-3.5 h-3.5"></i>
+                                <span>${card.tool}</span>
+                            </span>
+                            <span class="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg">
+                                <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                                <span>~${card.timeSaved}</span>
+                            </span>
+                        </div>
+
+                        <h3 class="text-lg font-bold text-navy-900 mb-2">${card.title}</h3>
+                        <p class="text-slate-600 text-sm leading-relaxed mb-5">${card.description}</p>
+
+                        <!-- Prompt előnézeti doboz -->
+                        <div class="bg-slate-900 rounded-xl p-3.5 mb-5 border border-slate-800 relative group">
+                            <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono mb-1.5">
+                                <span>GEMINI PROMPT SABLON</span>
+                                <span class="text-emerald-400">Magyar nyelvű</span>
+                            </div>
+                            <pre class="text-xs text-slate-200 font-mono whitespace-pre-wrap line-clamp-4 leading-relaxed">${escapeHtml(card.prompt)}</pre>
+                        </div>
+                    </div>
+
+                    <!-- Akciógombok -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-slate-100">
+                        <button onclick="copyPromptById('${roleKey}', '${card.id}')"
+                            class="w-full bg-navy-900 hover:bg-navy-800 text-white font-semibold py-2.5 px-4 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer shadow-sm">
+                            <i data-lucide="copy" class="w-4 h-4 text-emerald-400"></i>
+                            <span>Prompt másolása</span>
+                        </button>
+                        <button onclick="openPreviewModal('${roleKey}', '${card.id}')"
+                            class="w-full bg-emerald-50 hover:bg-emerald-100 text-emerald-900 border border-emerald-200 font-semibold py-2.5 px-4 rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 cursor-pointer">
+                            <i data-lucide="eye" class="w-4 h-4 text-emerald-700"></i>
+                            <span>Interaktív Előnézet</span>
+                        </button>
+                    </div>
+                </article>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        // ==========================================
+        // 4. VÁGÓLAPRA MÁSOLÁS (iFrame-biztos megoldás)
+        // ==========================================
+        function copyToClipboard(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            try {
+                document.execCommand('copy');
+                showToast('Prompt sikeresen a vágólapra másolva!');
+            } catch (err) {
+                showToast('A másolás nem sikerült, jelöld ki manuálisan.');
+            }
+            document.body.removeChild(textarea);
+        }
+
+        function copyPromptById(roleKey, cardId) {
+            const card = rolesData[roleKey].cards.find(c => c.id === cardId);
+            if (card) {
+                copyToClipboard(card.prompt);
+            }
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toast-message').textContent = msg;
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // ==========================================
+        // 4/B. FŐ NÉZETVÁLTÁS ÉS ANTIGRAVITY RENDSZER ADATOK
+        // ==========================================
+        function switchMainView(viewName) {
+            const views = {
+                architektura: document.getElementById('view-architektura'),
+                eszkoztar: document.getElementById('view-eszkoztar'),
+                webapp: document.getElementById('view-webapp')
+            };
+            const buttons = {
+                architektura: document.getElementById('main-nav-architektura'),
+                eszkoztar: document.getElementById('main-nav-eszkoztar'),
+                webapp: document.getElementById('main-nav-webapp')
+            };
+
+            Object.keys(views).forEach(key => {
+                if (!views[key] || !buttons[key]) return;
+                if (key === viewName) {
+                    views[key].classList.remove('hidden');
+                    views[key].classList.add('block');
+                    buttons[key].classList.add('bg-amber-400', 'text-navy-950', 'shadow-md', 'font-bold');
+                    buttons[key].classList.remove('text-slate-300', 'hover:text-white', 'font-semibold');
+                } else {
+                    views[key].classList.add('hidden');
+                    views[key].classList.remove('block');
+                    buttons[key].classList.remove('bg-amber-400', 'text-navy-950', 'shadow-md', 'font-bold');
+                    buttons[key].classList.add('text-slate-300', 'hover:text-white', 'font-semibold');
+                }
+            });
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            lucide.createIcons();
+        }
+
+        // A 4 Pillér adatai
+        const systemPillars = [
+            {
+                id: "p1",
+                num: "01",
+                title: "Állandó Tudásbázis (Skills)",
+                tag: ".antigravity/skills/*.md",
+                icon: "book-open-check",
+                color: "emerald",
+                short: "Egyszer rögzített szabályok: NAT követelmények, magyar jelölések, értékelési elvek.",
+                detailTitle: "1. Pillér: Fájlrendszer-alapú Tudásbázis (Skills)",
+                detailText: "Ezeket soha többé nem gépeled be. Egyszer leírod egy Markdown fájlba a magyar NAT követelményeket, a jelölési szabályaidat (pl. tg α, lg x, g = 9,81 m/s²), a LaTeX formázást vagy az osztályod anonimizált névsorát, és az Agent automatikusan betölti őket, amikor a feladatkör megkívánja."
+            },
+            {
+                id: "p2",
+                num: "02",
+                title: "Eszközhozzáférés (Tools & MCP)",
+                tag: "Python • Drive • Gmail",
+                icon: "wrench",
+                color: "sky",
+                short: "Az agent nemcsak szöveget ír, hanem Python kódot futtat, fájlokat olvas és PDF-et fordít.",
+                detailTitle: "2. Pillér: Cselekvő Eszközök (Tools & Model Context Protocol)",
+                detailText: "A nyelvi modell önmagában nem tud pontosan integrálni vagy CSV-t elemezni – de az Antigravity-ben eszközöket kap: beolvassa a Krétából exportált .csv fájlt, Python szkripttel ellenőrzi a fizikai számításokat, LaTeX-ből PDF-et fordít, vagy a Gmail MCP-n keresztül előkészíti a szülői piszkozatokat."
+            },
+            {
+                id: "p3",
+                num: "03",
+                title: "Agent-lánc (Orchestration)",
+                tag: "Tervező → Ellenőrző → Kódoló",
+                icon: "git-branch",
+                color: "purple",
+                short: "Szakosodott al-ügynökök egymás munkáját ellenőrzik és adják tovább.",
+                detailTitle: "3. Pillér: Multi-Agent Orchestration (Munkamegosztás)",
+                detailText: "Egyetlen hosszú prompt helyett külön szereplők dolgoznak: az Adatelemző Agent feltárja az osztály típushibáit, a Szaktanári Agent megtervezi a feladatokat, a Verifikáló Agent Pythonban újraszámolja a végeredményeket (kiszűrve a dimenzióhibákat), a Vizualizációs Agent pedig legenerálja a HTML5 szimulációt."
+            },
+            {
+                id: "p4",
+                num: "04",
+                title: "Human-in-the-loop",
+                tag: "Tanári jóváhagyási pontok",
+                icon: "shield-check",
+                color: "amber",
+                short: "Az agent elvégzi a munka 90%-át, majd megáll a kritikus döntéseknél.",
+                detailTitle: "4. Pillér: Human-in-the-loop (Pedagógiai kontroll)",
+                detailText: "Az autonómia nem jelenti azt, hogy az AI felügyelet nélkül küld levelet a szülőknek vagy oszt ki dolgozatot. A munkafolyamat előre meghatározott pontokon megáll (pl. 'Elkészült a 25 szülői levél piszkozata és a PDF dolgozat – jóváhagyod?'), így a szakmai és pedagógiai döntés mindig a te kezedben marad."
+            }
+        ];
+
+        let activePillarId = "p1";
+
+        function renderPillars() {
+            const grid = document.getElementById('pillars-grid');
+            const detailBox = document.getElementById('pillar-detail-box');
+            if (!grid || !detailBox) return;
+
+            grid.innerHTML = systemPillars.map(p => {
+                const isActive = p.id === activePillarId;
+                return `
+                    <button onclick="selectPillar('${p.id}')"
+                        class="text-left p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                            isActive
+                            ? 'bg-slate-800 border-emerald-400 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-400/50'
+                            : 'bg-slate-800/40 border-slate-700/80 hover:bg-slate-800/70'
+                        }">
+                        <div>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-xs font-mono font-bold px-2 py-0.5 rounded bg-slate-900 text-emerald-400">${p.num}. PILLÉR</span>
+                                <i data-lucide="${p.icon}" class="w-4 h-4 text-amber-400"></i>
+                            </div>
+                            <h3 class="font-bold text-white text-sm sm:text-base mb-1">${p.title}</h3>
+                            <p class="text-xs text-slate-300 leading-relaxed">${p.short}</p>
+                        </div>
+                        <div class="mt-3 pt-2 border-t border-slate-700/60 flex items-center justify-between text-[11px] font-mono text-slate-400">
+                            <span>${p.tag}</span>
+                            <span class="text-emerald-400">${isActive ? 'Aktív' : 'Részletek →'}</span>
+                        </div>
+                    </button>
+                `;
+            }).join('');
+
+            const activeP = systemPillars.find(p => p.id === activePillarId);
+            detailBox.innerHTML = `
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                    <h4 class="font-bold text-emerald-400 text-base sm:text-lg flex items-center gap-2">
+                        <i data-lucide="${activeP.icon}" class="w-5 h-5"></i>
+                        <span>${activeP.detailTitle}</span>
+                    </h4>
+                    <span class="text-xs font-mono bg-navy-950 text-amber-300 px-2.5 py-1 rounded-lg border border-slate-700 self-start">${activeP.tag}</span>
+                </div>
+                <p class="text-slate-200 text-sm sm:text-base leading-relaxed">${activeP.detailText}</p>
+            `;
+            lucide.createIcons();
+        }
+
+        function selectPillar(id) {
+            activePillarId = id;
+            renderPillars();
+        }
+
+        // Antigravity IDE Fájlrendszer adatok
+        const antigravityFiles = [
+            {
+                id: "f-matek",
+                path: "tanari-rendszer/.antigravity/skills/matek-erettsegi-skill.md",
+                label: "matek-erettsegi-skill.md",
+                folder: ".antigravity/skills/",
+                role: "Matematika Skill",
+                icon: "file-text",
+                content: `---
+name: matek-erettsegi-keszito
+description: Akkor használd, ha matematika feladatsort, dolgozatot vagy javítókulcsot kell készíteni.
+---
+# Szabályok és Magyar Szabványok:
+1. Minden feladatot A és B csoportra bontva generálj, azonos nehézségi szinttel.
+2. Használj szabványos magyar jelöléseket:
+   - tangens: $\\text{tg }\\alpha$ (NEM $\\tan \\alpha$)
+   - tízes alapú logaritmus: $\\text{lg }x$ (NEM $\\log_{10}x$)
+   - tizedesvessző használata a magyar szövegben (pl. $3{,}14$).
+3. VERIFIKÁCIÓ: A számításokat MINDIG ellenőrizd Python szkript futtatásával a terminálban, mielőtt leírod a végeredményt!
+4. A kimenetet LaTeX formátumban írd meg, és fordítsd le PDF-re a \`kimenet/\` mappába.`
+            },
+            {
+                id: "f-fizika",
+                path: "tanari-rendszer/.antigravity/skills/fizika-szimulacio-skill.md",
+                label: "fizika-szimulacio-skill.md",
+                folder: ".antigravity/skills/",
+                role: "Fizika & Canvas Skill",
+                icon: "file-code",
+                content: `---
+name: fizika-szimulacio-builder
+description: Interaktív HTML5 Canvas fizikai kísérletek és feladatlapok készítése.
+---
+# Fizikai és Vizualizációs Előírások:
+1. Mindig SI mértékegységeket használj ($g = 9{,}81\\text{ m/s}^2$, $v$ [m/s], $F$ [N]).
+2. Ha interaktív szimulációt kérek, egyetlen önálló HTML fájlt hozz létre a \`kimenet/\` mappába.
+3. A Canvas szimulációban kötelező elemek:
+   - Valós idejű vektornyilak (nehézségi erő $G$, nyomóerő $F_{ny}$, súrlódás $F_s$).
+   - Csúszkák a paraméterekhez (pl. hajlásszög $\\alpha$, súrlódási együttható $\\mu$).
+   - Élő numerikus kijelző a gyorsulás ($a$) és a sebesség ($v$) értékeivel.`
+            },
+            {
+                id: "f-ofo",
+                path: "tanari-rendszer/.antigravity/skills/osztalyfonok-skill.md",
+                label: "osztalyfonok-skill.md",
+                folder: ".antigravity/skills/",
+                role: "Osztályfőnöki Skill",
+                icon: "users",
+                content: `---
+name: osztalyfonoki-kommunikator
+description: Szülői levelek, Kréta-elemzések és osztályprogramok tervezése.
+---
+# Pedagógiai és Adatvédelmi Szabályok:
+1. ADATVÉDELEM: A CSV fájlokban csak tanulói kódokat (pl. T01, T02) használj, teljes nevet soha ne küldj külső API-nak; a névbehelyettesítést lokális Python szkript végzi.
+2. Hangnem: Higgadt, partneri, megoldásorientált magyar nyelvezet. Kerüld a vádaskodást.
+3. Minden figyelmeztető jellegű levél tartalmazzon konkrét támogatási javaslatot (fogadóóra, korrepetálás időpontja).
+4. A kész leveleket Gmail/Kréta piszkozatként mentsd el, és kérj Human-in-the-loop jóváhagyást!`
+            },
+            {
+                id: "f-csv",
+                path: "tanari-rendszer/adatok/11b_jegyek_2026_osz.csv",
+                label: "11b_jegyek_2026_osz.csv",
+                folder: "adatok/",
+                role: "Anonimizált Bemeneti Adat",
+                icon: "table",
+                content: `tanulo_kod,matek_atlag,fizika_atlag,gyenge_temakor,igazolatlan_ora,megjegyzes
+T01,4.85,4.90,nincs,0,OKTV felkészítőre jár
+T02,2.40,2.20,lejton_mozgo_testek,4,Utóbbi 3 hétben romló tendencia
+T03,3.60,2.80,surlodasi_ero_szamitas,0,Szorgalmas de elakad a vektorfelbontásnál
+T04,1.95,2.10,egyenletrendszerek_es_dinamika,6,Szülői egyeztetés javasolt
+T05,4.20,3.90,nincs,0,Közösségi szolgálat 42/50 óra kész`
+            },
+            {
+                id: "f-wf",
+                path: "tanari-rendszer/WORKFLOW.md",
+                label: "WORKFLOW.md",
+                folder: "gyökérkönyvtár",
+                role: "Fő Orchestrator Folyamat",
+                icon: "workflow",
+                content: `# Antigravity Multi-Agent Workflow: Témazáró & Felzárkóztatás
+
+## Trigger:
+Amikor a tanár megad egy osztályt és témakört (pl. "11.B Fizika - Dinamika"):
+
+1. **Adatelemző Agent (Python Tool):**
+   - Olvasd be az \`adatok/11b_jegyek_2026_osz.csv\` fájlt.
+   - Azonosítsd az osztály leggyengébb témaköreit (jelenleg: lejtőn mozgó testek, súrlódás).
+2. **Szaktanári Agent (Skill: fizika-szimulacio-skill.md):**
+   - Állíts össze A és B csoportos dolgozatot kiemelt súllyal a lejtős feladatokra.
+3. **Verifikáló Agent (Python Terminál):**
+   - Írj és futtass Python szkriptet minden feladat ellenőrzésére.
+   - Fordítsd le a LaTeX fájlt \`kimenet/11b_fizika_tz.pdf\` néven.
+4. **Vizualizációs Agent:**
+   - Generálj egy \`kimenet/lejto_szimulator.html\` fájlt holnapi órai gyakorláshoz.
+5. **STOP -> Human-in-the-loop:**
+   - Mutasd meg a generált PDF-et és HTML-t jóváhagyásra!`
+            }
+        ];
+
+        let activeIdeFileId = "f-matek";
+
+        function renderIdeExplorer() {
+            const treeEl = document.getElementById('ide-file-tree');
+            if (!treeEl) return;
+
+            treeEl.innerHTML = antigravityFiles.map(file => {
+                const isSelected = file.id === activeIdeFileId;
+                return `
+                    <button onclick="selectIdeFile('${file.id}')"
+                        class="w-full text-left px-3 py-2 rounded-lg transition flex items-center justify-between gap-2 cursor-pointer ${
+                            isSelected
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                            : 'text-slate-300 hover:bg-slate-800/80'
+                        }">
+                        <div class="flex items-center gap-2 truncate">
+                            <i data-lucide="${file.icon}" class="w-4 h-4 shrink-0 ${isSelected ? 'text-emerald-400' : 'text-slate-400'}"></i>
+                            <div class="truncate">
+                                <span class="block truncate font-medium">${file.label}</span>
+                                <span class="block text-[10px] text-slate-500">${file.folder}</span>
+                            </div>
+                        </div>
+                        ${isSelected ? '<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>' : ''}
+                    </button>
+                `;
+            }).join('');
+
+            const activeFile = antigravityFiles.find(f => f.id === activeIdeFileId);
+            document.getElementById('ide-active-filename').textContent = activeFile.path;
+            document.getElementById('ide-file-role').textContent = activeFile.role;
+            document.getElementById('ide-file-content').textContent = activeFile.content;
+            lucide.createIcons();
+        }
+
+        function selectIdeFile(fileId) {
+            activeIdeFileId = fileId;
+            renderIdeExplorer();
+        }
+
+        function copyActiveSkillFile() {
+            const activeFile = antigravityFiles.find(f => f.id === activeIdeFileId);
+            if (activeFile) {
+                copyToClipboard(activeFile.content);
+                showToast(`"${activeFile.label}" tartalma a vágólapra másolva!`);
+            }
+        }
+
+        // Élő Multi-Agent Workflow Szimulátor Adatok
+        const agentWorkflowDemos = [
+            {
+                id: "wf-demo-1",
+                title: "11.B Fizika Témazáró + Lejtő Szimulátor",
+                badge: "Fizika & Python",
+                trigger: "„Készítsd el a 11.B félévi fizika témazáróját 2 csoportban + interaktív szimulációt a holnapi órára a 11b_jegyek_2026_osz.csv gyengébb témakörei alapján!”",
+                steps: [
+                    { agent: "1. Adatelemző Agent", tool: "Python & CSV Tool", desc: "Beolvassa a 11b_jegyek_2026_osz.csv-t: az osztály 40%-a elrontotta a lejtőn mozgó testek súrlódási erejét.", log: "[PYTHON] Reading adatok/11b_jegyek_2026_osz.csv... Weakest topic detected: 'lejton_mozgo_testek' (40% error rate)." },
+                    { agent: "2. Feladattervező Agent", tool: "Skill: fizika-szimulacio-skill.md", desc: "Betölti a magyar jelölési szabályokat, és összeállít A/B csoportos feladatokat kiemelt súllyal a lejtős dinamikára.", log: "[SKILL] Loaded fizika-szimulacio-skill.md. Drafting Group A & B (5-5 problems, SI units enforced)." },
+                    { agent: "3. Verifikáló Agent", tool: "Python Code Execution & LaTeX", desc: "Pythonban újraszámolja a végeredményeket (kiszűrve a kerekítési hibákat) és lefordítja a PDF-et.", log: "[VERIFY] Running verify_physics.py -> All 10 answers verified. Compiled kimenet/11b_fizika_tz.pdf." },
+                    { agent: "4. Vizualizációs Agent", tool: "HTML5 Canvas Generator", desc: "Elkészíti a kivetíthető lejto_szimulator.html fájlt állítható hajlásszöggel (α) és súrlódási együtthatóval (μ).", log: "[CANVAS] Generated kimenet/lejto_szimulator.html with live G, F_ny, F_s vector overlays." }
+                ],
+                hitlDesc: "Elkészült a nyomtatható '11b_fizika_tz.pdf' (A/B csoport + javítókulcs) és a 'lejto_szimulator.html' kivetítőre. Jóváhagyod és megnyitod a generált lejtő-szimulátort?",
+                resultModalTitle: "Generált Kimenet: Lejtőn Mozgó Test Interaktív Szimulátor",
+                resultModalBadge: "Antigravity Kimenet: kimenet/lejto_szimulator.html",
+                isInclineSim: true
+            },
+            {
+                id: "wf-demo-2",
+                title: "Kréta Havi Elemző & Szülői Asszisztens",
+                badge: "Osztályfőnök & MCP",
+                trigger: "„Elemezd az újonnan bedobott havi Kréta exportot, szűrd ki a veszélyeztetett tanulókat, és készítsd el a személyre szabott szülői levélpiszkozatokat!”",
+                steps: [
+                    { agent: "1. Adatvédelmi & Statisztika Agent", tool: "Python Pandas Tool", desc: "Anonimizált kódok (T01..T28) alapján kiszűri a bukásra állókat (2 fő) és a növekvő igazolatlan órákat.", log: "[PYTHON] Filtered 28 records: 2 students at risk (T02, T04), 1 student with 6 unexcused absences." },
+                    { agent: "2. Osztályfőnök Agent", tool: "Skill: osztalyfonok-skill.md", desc: "Megfogalmazza a partneri, nem vádaskodó hangvételű leveleket a szerdai fogadóóra időpontjával.", log: "[SKILL] Applied empathetic tone rules from osztalyfonok-skill.md. Drafted 3 tailored parent messages." },
+                    { agent: "3. Workspace Integrátor", tool: "Gmail & Sheets MCP", desc: "Előkészíti a levélpiszkozatokat és generál egy fogadóórai összesítő táblázatot neked.", log: "[MCP:GMAIL] Created 3 draft emails. [MCP:SHEETS] Updated 'Fogadoora_Osszesito_2026.xlsx'." },
+                    { agent: "4. Biztonsági Ellenőrző", tool: "Policy Guardrail", desc: "Megállítja az automatikus küldést, és emberi jóváhagyást kér a kiküldés előtt.", log: "[HITL] Halted before external email dispatch. Waiting for teacher approval..." }
+                ],
+                hitlDesc: "3 szülői levélpiszkozat és a fogadóórai összesítő táblázat elkészült. A rendszer adatvédelmi okokból nem küldte el őket automatikusan. Megtekinted a piszkozatokat?",
+                resultModalTitle: "Generált Kimenet: Személyre Szabott Szülői Levélpiszkozatok",
+                resultModalBadge: "Antigravity Kimenet: Gmail MCP Drafts",
+                resultHtml: `
+                    <div class="space-y-4 text-sm">
+                        <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-900 text-xs font-medium">
+                            ✓ Python elemzés kész: 28 tanulóból 2 főnél (T02, T04) szükséges azonnali egyeztetés.
+                        </div>
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                            <div class="flex justify-between text-xs text-slate-500 border-b border-slate-200 pb-2">
+                                <span><strong>Címzett:</strong> T04 tanuló szülei (Kréta / Gmail piszkozat)</span>
+                                <span class="text-amber-600 font-semibold">Jóváhagyásra vár</span>
+                            </div>
+                            <p class="font-bold text-navy-900">Tárgy: Egyeztetés tanulmányi előmenetelről és hiányzásokról</p>
+                            <p class="text-slate-700">Kedves Szülők! A havi összesítés alapján szeretném jelezni, hogy az elmúlt hetekben matematika és fizika tantárgyakból több elmaradás halmozódott fel (átlag 2,0 körül), valamint 6 igazolatlan óra is rögzítésre került. Szeretném, ha közösen átbeszélnénk, hogyan tudjuk támogatni a felzárkózást – szerdán 16:00–17:30 között fogadóórát tartok.</p>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                id: "wf-demo-3",
+                title: "„Javításból Tanulás” Mikro-gyakorló Ciklus",
+                badge: "Matematika Workflow",
+                trigger: "„Beírtam a mai logaritmus röpdolgozat pontszámait. Azonosítsd a 3 leggyakoribb hibát, és készíts 3 db 5 perces bemelegítő feladatlapot holnapra!”",
+                steps: [
+                    { agent: "1. Hibastatisztika Agent", tool: "Python Statisztika", desc: "Megállapítja, hogy az osztály 65%-a elhagyta a kikötéseket (értelmezési tartomány), 30%-a pedig előjelet tévesztett.", log: "[PYTHON] Top errors: #1 Domain omission (65%), #2 Sign error in log identity (30%)." },
+                    { agent: "2. Matek Agent", tool: "Skill: matek-erettsegi-skill.md", desc: "Generál 3 rövid, 5 perces mikro-gyakorló feladatsort magyar jelölésekkel (lg x) és lépésenkénti megoldással.", log: "[SKILL] Generated 3 micro-drills using Hungarian notation (lg x)." },
+                    { agent: "3. Kódoló & Verifikáló Agent", tool: "SymPy & LaTeX", desc: "Szimbolikus matematikával (SymPy) ellenőrzi a gyököket és a hamis gyökök kizárását, majd PDF-et készít.", log: "[SYMPY] Verified extraneous root filtering. Output: kimenet/logaritmus_mikro_gyakorlo.pdf." },
+                    { agent: "4. Kivetítő Diakészítő", tool: "Markdown / HTML", desc: "Elkészíti az óra eleji közös megbeszéléshez szánt megoldási diát is.", log: "[DONE] Ready for teacher review." }
+                ],
+                hitlDesc: "A 3 darab 5 perces mikro-gyakorló PDF és a kivetíthető megoldókulcs elkészült az osztály típushibáira szabva. Megtekinted?",
+                resultModalTitle: "Generált Kimenet: Célzott Mikro-gyakorló (Kikötések a logaritmusban)",
+                resultModalBadge: "Antigravity Kimenet: kimenet/logaritmus_mikro_gyakorlo.pdf",
+                resultHtml: `
+                    <div class="space-y-3 text-sm">
+                        <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs">
+                            <strong>Diagnózis:</strong> A dolgozatban az osztály 65%-a elfelejtette az értelmezési tartományt felírni.
+                        </div>
+                        <div class="p-4 bg-white border border-slate-200 rounded-xl space-y-2">
+                            <h4 class="font-bold text-navy-900">5 perces óra eleji villámgyakorló (1. nap):</h4>
+                            <p class="text-slate-700">Oldd meg a valós számok halmazán: $\\text{lg}(x - 2) + \\text{lg}(x + 1) = 1$</p>
+                            <div class="math-formula text-xs text-slate-700">
+                                <strong>SymPy által ellenőrzött levezetés:</strong><br>
+                                1. Kikötések: $x - 2 > 0$ és $x + 1 > 0 \\Rightarrow x > 2$.<br>
+                                2. Egyenlet: $(x - 2)(x + 1) = 10 \\Rightarrow x^2 - x - 12 = 0 \\Rightarrow x_1 = 4, \\; x_2 = -3$.<br>
+                                3. Ellenőrzés: $x_2 = -3$ hamis gyök (nem teljesíti az $x > 2$ kikötést), így az egyetlen megoldás: $x = 4$.
+                            </div>
+                        </div>
+                    </div>
+                `
+            },
+            {
+                id: "wf-demo-4",
+                title: "Osztálykirándulás Logisztikai Agent",
+                badge: "Komplex Szervezés",
+                trigger: "„Tervezz 2 napos tavaszi kirándulást a Mátrába 28 diáknak és 2 tanárnak, max. 25.000 Ft/fő keretből, vonattal és helyi busszal!”",
+                steps: [
+                    { agent: "1. Útvonal & Menetrend Agent", tool: "Web Search Tool", desc: "Lekéri a MÁV és Volánbusz csatlakozásokat, valamint a csoportos diákkedvezményeket.", log: "[SEARCH] Fetched MAV/Volan schedules & group student ticket discounts." },
+                    { agent: "2. Költségvetés Agent", tool: "Python & Excel Tool", desc: "Kiszámolja az 1 főre jutó költségeket (szállás, félpanzió, belépők, 10% tartalék) és ellenőrzi a 25.000 Ft-os plafont.", log: "[PYTHON] Total per student: 21,450 HUF (3,550 HUF under budget limit)." },
+                    { agent: "3. Dokumentum Agent", tool: "Skill: osztalyfonok-skill.md", desc: "Megírja a szülői tájékoztató levelet és a nyomtatható szülői beleegyező nyilatkozatot.", log: "[DOCS] Generated kimenet/Matra_Kirandulas_Csomag.docx." },
+                    { agent: "4. Tanári Jóváhagyás", tool: "Human-in-the-loop", desc: "Összefoglalja a költségvetést és a programot végső jóváhagyásra.", log: "[HITL] Package ready for teacher sign-off." }
+                ],
+                hitlDesc: "A mátrai osztálykirándulás teljes útiterve, költségvetése (21.450 Ft/fő) és a szülői nyilatkozat elkészült. Megtekinted az összefoglalót?",
+                resultModalTitle: "Generált Kimenet: Mátrai Osztálykirándulás Logisztikai Csomag",
+                resultModalBadge: "Antigravity Kimenet: kimenet/Matra_Kirandulas_Csomag.docx",
+                resultHtml: `
+                    <div class="space-y-3 text-sm">
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200">
+                                <span class="text-xs text-emerald-700 block">Költség / fő</span>
+                                <strong class="text-base text-emerald-900 font-mono">21 450 Ft</strong>
+                            </div>
+                            <div class="p-3 bg-sky-50 rounded-xl border border-sky-200">
+                                <span class="text-xs text-sky-700 block">Utazás</span>
+                                <strong class="text-base text-sky-900">Országbérlettel 0 Ft</strong>
+                            </div>
+                            <div class="p-3 bg-amber-50 rounded-xl border border-amber-200">
+                                <span class="text-xs text-amber-700 block">Tartalékkeret</span>
+                                <strong class="text-base text-amber-900 font-mono">3 550 Ft/fő</strong>
+                            </div>
+                        </div>
+                        <div class="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 space-y-1">
+                            <p><strong>1. nap:</strong> Érkezés Mátrafüredre → Sástó kilátó → Túra Kékestetőre → Szállás elfoglalása, közös bográcsozás.</p>
+                            <p><strong>2. nap:</strong> Parádfürdő Cifra Istálló → Ilona-völgyi vízesés → Hazautazás a délutáni járattal.</p>
+                            <p class="text-emerald-700 font-semibold pt-1">✓ Mellékelve: Aláírható szülői felelősségvállalási és egészségügyi nyilatkozat.</p>
+                        </div>
+                    </div>
+                `
+            }
+        ];
+
+        let activeSimDemoId = "wf-demo-1";
+        let simTimerIds = [];
+
+        function renderAgentSimulator() {
+            const selector = document.getElementById('sim-workflow-selector');
+            if (!selector) return;
+
+            selector.innerHTML = agentWorkflowDemos.map(demo => {
+                const isSel = demo.id === activeSimDemoId;
+                return `
+                    <button onclick="selectSimDemo('${demo.id}')"
+                        class="text-left p-3.5 rounded-xl border transition-all cursor-pointer ${
+                            isSel
+                            ? 'bg-navy-900 text-white border-navy-900 shadow-md'
+                            : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                        }">
+                        <span class="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded ${
+                            isSel ? 'bg-emerald-500/20 text-emerald-300' : 'bg-slate-100 text-slate-600'
+                        }">${demo.badge}</span>
+                        <h4 class="font-bold text-sm mt-2 leading-snug">${demo.title}</h4>
+                    </button>
+                `;
+            }).join('');
+
+            const demo = agentWorkflowDemos.find(d => d.id === activeSimDemoId);
+            document.getElementById('sim-trigger-prompt').textContent = demo.trigger;
+            resetAgentStepsUI(demo);
+        }
+
+        function selectSimDemo(demoId) {
+            clearSimTimers();
+            activeSimDemoId = demoId;
+            renderAgentSimulator();
+        }
+
+        function clearSimTimers() {
+            simTimerIds.forEach(id => clearTimeout(id));
+            simTimerIds = [];
+        }
+
+        function resetAgentStepsUI(demo) {
+            const stepsContainer = document.getElementById('sim-agent-steps');
+            stepsContainer.innerHTML = demo.steps.map((step, idx) => `
+                <div id="agent-step-card-${idx}" class="p-3.5 rounded-xl border border-slate-700/80 bg-slate-800/50 transition-all duration-300 opacity-70">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-1">
+                        <span class="font-bold text-sm text-white flex items-center gap-2">
+                            <span id="agent-step-dot-${idx}" class="w-2.5 h-2.5 rounded-full bg-slate-500"></span>
+                            <span>${step.agent}</span>
+                        </span>
+                        <span class="text-[11px] font-mono px-2 py-0.5 rounded bg-navy-950 text-sky-400 border border-slate-700">${step.tool}</span>
+                    </div>
+                    <p class="text-xs text-slate-300 pl-4">${step.desc}</p>
+                </div>
+            `).join('');
+
+            document.getElementById('sim-status-badge').textContent = "Készenlétben";
+            document.getElementById('sim-status-badge').className = "px-2 py-0.5 rounded bg-slate-800 text-slate-300";
+            document.getElementById('sim-terminal-logs').innerHTML = `<p class="text-slate-500">> Kattints a "Workflow Indítása" gombra a szimuláció futtatásához...</p>`;
+            document.getElementById('sim-hitl-box').classList.add('hidden');
+            lucide.createIcons();
+        }
+
+        function runAgentSimulation() {
+            clearSimTimers();
+            const demo = agentWorkflowDemos.find(d => d.id === activeSimDemoId);
+            resetAgentStepsUI(demo);
+
+            const logsEl = document.getElementById('sim-terminal-logs');
+            const badgeEl = document.getElementById('sim-status-badge');
+            logsEl.innerHTML = `<p class="text-emerald-400">> Antigravity Orchestrator elindítva...</p>`;
+            badgeEl.textContent = "Agentek futnak...";
+            badgeEl.className = "px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 animate-pulse";
+
+            demo.steps.forEach((step, idx) => {
+                const timer = setTimeout(() => {
+                    const card = document.getElementById(`agent-step-card-${idx}`);
+                    const dot = document.getElementById(`agent-step-dot-${idx}`);
+                    if (card && dot) {
+                        card.classList.remove('opacity-70', 'border-slate-700/80');
+                        card.classList.add('opacity-100', 'border-emerald-500/60', 'bg-slate-800');
+                        dot.classList.remove('bg-slate-500');
+                        dot.classList.add('bg-emerald-400');
+                    }
+                    const p = document.createElement('p');
+                    p.className = "text-slate-200 animate-fade-in";
+                    p.textContent = `> ${step.log}`;
+                    logsEl.appendChild(p);
+                    logsEl.scrollTop = logsEl.scrollHeight;
+
+                    // Utolsó lépés után Human-in-the-loop megállás
+                    if (idx === demo.steps.length - 1) {
+                        const hitlTimer = setTimeout(() => {
+                            badgeEl.textContent = "Jóváhagyásra vár (HITL)";
+                            badgeEl.className = "px-2 py-0.5 rounded bg-amber-500/20 text-amber-300";
+                            document.getElementById('sim-hitl-desc').textContent = demo.hitlDesc;
+                            document.getElementById('sim-hitl-box').classList.remove('hidden');
+                            lucide.createIcons();
+                        }, 600);
+                        simTimerIds.push(hitlTimer);
+                    }
+                }, (idx + 1) * 750);
+                simTimerIds.push(timer);
+            });
+        }
+
+        function approveHitlStep() {
+            const demo = agentWorkflowDemos.find(d => d.id === activeSimDemoId);
+            document.getElementById('sim-status-badge').textContent = "Jóváhagyva ✓";
+            document.getElementById('sim-status-badge').className = "px-2 py-0.5 rounded bg-emerald-500 text-navy-950 font-bold";
+
+            document.getElementById('modal-badge').textContent = demo.resultModalBadge;
+            document.getElementById('modal-title').textContent = demo.resultModalTitle;
+
+            const modalBody = document.getElementById('modal-body');
+            if (demo.isInclineSim) {
+                modalBody.innerHTML = `
+                    <div class="bg-navy-900 text-white p-4 rounded-xl border border-slate-700 space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-xs font-bold text-amber-400 uppercase tracking-wider">Élő Lejtő Szimuláció (kimenet/lejto_szimulator.html)</span>
+                            <div class="flex flex-wrap items-center gap-3 text-xs">
+                                <label class="flex items-center gap-1">Hajlásszög (α): <span id="inc-angle-val" class="font-mono text-emerald-400">30°</span>
+                                    <input type="range" id="inc-angle" min="10" max="60" value="30" class="w-20 accent-emerald-500 cursor-pointer">
+                                </label>
+                                <label class="flex items-center gap-1">Súrlódás (μ): <span id="inc-mu-val" class="font-mono text-amber-400">0.20</span>
+                                    <input type="range" id="inc-mu" min="0" max="80" value="20" class="w-20 accent-amber-500 cursor-pointer">
+                                </label>
+                            </div>
+                        </div>
+                        <canvas id="incline-sim-canvas" class="w-full h-52 bg-slate-950 rounded-lg border border-slate-800 block"></canvas>
+                        <div class="grid grid-cols-3 gap-2 text-center text-xs bg-slate-800/80 p-2.5 rounded-lg font-mono">
+                            <div>Lejtőirányú erő ($G_{\\parallel}$): <span id="inc-gp" class="text-emerald-400">4.91 m/s²</span></div>
+                            <div>Tapadási határ ($\\mu g \\cos\\alpha$): <span id="inc-fs" class="text-amber-400">1.70 m/s²</span></div>
+                            <div>Gyorsulás ($a$): <span id="inc-acc" class="text-white font-bold">3.21 m/s² (Csúszik!)</span></div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                modalBody.innerHTML = demo.resultHtml;
+            }
+
+            const copyBtn = document.getElementById('modal-copy-btn');
+            copyBtn.onclick = () => copyToClipboard(demo.trigger);
+
+            const modal = document.getElementById('preview-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+
+            if (window.renderMathInElement) {
+                renderMathInElement(modalBody, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ]
+                });
+            }
+
+            if (demo.isInclineSim) {
+                setTimeout(initInclineCanvas, 50);
+            }
+        }
+
+        // Lejtőn mozgó test élő vektor-szimulátor
+        function initInclineCanvas() {
+            const canvas = document.getElementById('incline-sim-canvas');
+            const angleSlider = document.getElementById('inc-angle');
+            const muSlider = document.getElementById('inc-mu');
+            if (!canvas || !angleSlider || !muSlider) return;
+
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            function drawIncline() {
+                const alpha = parseInt(angleSlider.value);
+                const mu = parseInt(muSlider.value) / 100;
+                document.getElementById('inc-angle-val').textContent = alpha + '°';
+                document.getElementById('inc-mu-val').textContent = mu.toFixed(2).replace('.', ',');
+
+                const g = 9.81;
+                const rad = alpha * Math.PI / 180;
+                const gp = g * Math.sin(rad);
+                const fsMax = mu * g * Math.cos(rad);
+                const acc = Math.max(0, gp - fsMax);
+
+                document.getElementById('inc-gp').textContent = gp.toFixed(2) + ' m/s²';
+                document.getElementById('inc-fs').textContent = fsMax.toFixed(2) + ' m/s²';
+                document.getElementById('inc-acc').textContent = acc > 0 ? `${acc.toFixed(2)} m/s² (Csúszik!)` : `0,00 m/s² (Nyugalomban)`;
+
+                const ctx = canvas.getContext('2d');
+                const w = canvas.width;
+                const h = canvas.height;
+                ctx.clearRect(0, 0, w, h);
+
+                const baseW = Math.min(w * 0.65, 340);
+                const startX = (w - baseW) / 2;
+                const baseY = h - 25;
+                const topY = baseY - Math.tan(rad) * baseW;
+
+                // Lejtő háromszög
+                ctx.fillStyle = '#1e293b';
+                ctx.strokeStyle = '#64748b';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(startX, baseY);
+                ctx.lineTo(startX + baseW, baseY);
+                ctx.lineTo(startX + baseW, Math.max(25, topY));
+                ctx.closePath();
+                ctx.fill();
+                ctx.stroke();
+
+                // Szög felirat
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = '12px monospace';
+                ctx.fillText(`α = ${alpha}°`, startX + 35, baseY - 8);
+
+                // Test a lejtő közepén
+                const actualAngle = Math.atan2(baseY - Math.max(25, topY), baseW);
+                const midX = startX + baseW * 0.52;
+                const midY = baseY - Math.tan(actualAngle) * (baseW * 0.52);
+
+                ctx.save();
+                ctx.translate(midX, midY);
+                ctx.rotate(-actualAngle);
+
+                // Téglatest
+                ctx.fillStyle = acc > 0 ? '#10b981' : '#38bdf8';
+                ctx.fillRect(-20, -24, 40, 24);
+                ctx.fillStyle = '#090d16';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.fillText('m', -6, -8);
+
+                // Nyomóerő F_ny (felfelé merőlegesen)
+                const fnLen = 48 * Math.cos(actualAngle);
+                drawArrow(ctx, 0, -12, 0, -12 - fnLen, '#34d399', 'F_ny');
+
+                // Súrlódás F_s (lejtővel párhuzamosan felfelé)
+                const fsLen = Math.min(55, (acc > 0 ? fsMax : gp) * 6);
+                if (fsLen > 2) {
+                    drawArrow(ctx, 0, -12, fsLen, -12, '#fbbf24', 'F_s');
+                }
+                ctx.restore();
+
+                // Nehézségi erő G (függőlegesen lefelé)
+                drawArrow(ctx, midX - Math.sin(actualAngle)*12, midY - Math.cos(actualAngle)*12, midX - Math.sin(actualAngle)*12, midY - Math.cos(actualAngle)*12 + 52, '#f87171', 'G');
+            }
+
+            function drawArrow(ctx, x1, y1, x2, y2, color, label) {
+                ctx.strokeStyle = color;
+                ctx.fillStyle = color;
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+
+                const angle = Math.atan2(y2 - y1, x2 - x1);
+                ctx.beginPath();
+                ctx.moveTo(x2, y2);
+                ctx.lineTo(x2 - 7 * Math.cos(angle - Math.PI / 6), y2 - 7 * Math.sin(angle - Math.PI / 6));
+                ctx.lineTo(x2 - 7 * Math.cos(angle + Math.PI / 6), y2 - 7 * Math.sin(angle + Math.PI / 6));
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.font = 'bold 11px monospace';
+                ctx.fillText(label, x2 + 5, y2 + 4);
+            }
+
+            angleSlider.oninput = drawIncline;
+            muSlider.oninput = drawIncline;
+            drawIncline();
+        }
+
+        // ==========================================
+        // 5. MODÁLIS ELŐNÉZET ABLAK & FIZIKA SZIMULÁTOR
+        // ==========================================
+        function openPreviewModal(roleKey, cardId) {
+            const card = rolesData[roleKey].cards.find(c => c.id === cardId);
+            if (!card) return;
+
+            document.getElementById('modal-badge').textContent = card.tool;
+            document.getElementById('modal-title').textContent = card.title;
+            
+            const modalBody = document.getElementById('modal-body');
+            modalBody.innerHTML = `
+                <!-- Bemenet (Prompt) -->
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                            <i data-lucide="terminal" class="w-4 h-4 text-navy-900"></i>
+                            <span>1. Bemenet (Tanári Prompt)</span>
+                        </span>
+                        <span class="text-xs text-slate-500 bg-slate-100 px-2 py-0.5 rounded">${escapeHtml(card.preview.input)}</span>
+                    </div>
+                    <div class="bg-slate-900 text-slate-100 p-4 rounded-xl font-mono text-xs sm:text-sm whitespace-pre-wrap leading-relaxed border border-slate-700">${escapeHtml(card.prompt)}</div>
+                </div>
+
+                <!-- Kimenet (Gemini Eredmény) -->
+                <div>
+                    <div class="flex items-center gap-1.5 mb-2 text-xs font-bold uppercase tracking-wider text-emerald-700">
+                        <i data-lucide="sparkles" class="w-4 h-4"></i>
+                        <span>2. Gemini Kimenet (Példa eredmény)</span>
+                    </div>
+                    <div class="bg-white border-2 border-emerald-500/20 rounded-xl p-4 sm:p-5 shadow-inner">
+                        ${card.preview.outputHtml}
+                    </div>
+                </div>
+            `;
+
+            const copyBtn = document.getElementById('modal-copy-btn');
+            copyBtn.onclick = () => copyToClipboard(card.prompt);
+
+            const modal = document.getElementById('preview-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+
+            lucide.createIcons();
+            
+            // KaTeX képletek renderelése a modális ablakban
+            if (window.renderMathInElement) {
+                renderMathInElement(modalBody, {
+                    delimiters: [
+                        {left: '$$', right: '$$', display: true},
+                        {left: '$', right: '$', display: false}
+                    ]
+                });
+            }
+
+            // Ha ez a fizika szimulációs kártya, indítsuk el a Canvas rajzolást
+            if (card.preview.isInteractiveSim) {
+                setTimeout(initPhysicsSim, 50);
+            }
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('preview-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            if (simAnimationId) {
+                cancelAnimationFrame(simAnimationId);
+                simAnimationId = null;
+            }
+        }
+
+        // ESC billentyűre záródjon a modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeModal();
+        });
+
+        // Mini Ferde Hajítás Szimulátor a Fizika Előnézetben
+        let simState = { angle: 45, v0: 25, g: 9.81, t: 0, running: false, trail: [] };
+
+        function initPhysicsSim() {
+            const canvas = document.getElementById('physics-sim-canvas');
+            const slider = document.getElementById('sim-angle');
+            if (!canvas || !slider) return;
+
+            // Reszponzív canvas méretezés
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+
+            slider.oninput = function() {
+                simState.angle = parseInt(this.value);
+                document.getElementById('sim-angle-val').textContent = simState.angle + '°';
+                updateSimMetrics();
+                if (!simState.running) drawSimFrame();
+            };
+
+            updateSimMetrics();
+            launchSimProjectile();
+        }
+
+        function updateSimMetrics() {
+            const rad = simState.angle * Math.PI / 180;
+            const maxH = (Math.pow(simState.v0 * Math.sin(rad), 2)) / (2 * simState.g);
+            const dist = (Math.pow(simState.v0, 2) * Math.sin(2 * rad)) / simState.g;
+            const hEl = document.getElementById('sim-h');
+            const dEl = document.getElementById('sim-d');
+            if (hEl) hEl.textContent = maxH.toFixed(1) + ' m';
+            if (dEl) dEl.textContent = dist.toFixed(1) + ' m';
+        }
+
+        function launchSimProjectile() {
+            if (simAnimationId) cancelAnimationFrame(simAnimationId);
+            simState.t = 0;
+            simState.trail = [];
+            simState.running = true;
+            animatePhysicsSim();
+        }
+
+        function animatePhysicsSim() {
+            const canvas = document.getElementById('physics-sim-canvas');
+            if (!canvas) return;
+
+            const rad = simState.angle * Math.PI / 180;
+            const vx = simState.v0 * Math.cos(rad);
+            const vy0 = simState.v0 * Math.sin(rad);
+
+            const x = vx * simState.t;
+            const y = vy0 * simState.t - 0.5 * simState.g * simState.t * simState.t;
+
+            if (y >= 0 || simState.t === 0) {
+                simState.trail.push({ x, y: Math.max(0, y) });
+                drawSimFrame(x, Math.max(0, y));
+                simState.t += 0.08;
+                simAnimationId = requestAnimationFrame(animatePhysicsSim);
+            } else {
+                simState.running = false;
+                drawSimFrame(x, 0);
+            }
+        }
+
+        function drawSimFrame(curX = 0, curY = 0) {
+            const canvas = document.getElementById('physics-sim-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+
+            ctx.clearRect(0, 0, w, h);
+
+            // Talaj
+            const groundY = h - 20;
+            ctx.strokeStyle = '#334155';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(10, groundY);
+            ctx.lineTo(w - 10, groundY);
+            ctx.stroke();
+
+            // Skálázás (max 75m vízszintesen, 35m függőlegesen)
+            const scaleX = (w - 40) / 70;
+            const scaleY = (groundY - 20) / 35;
+
+            // Röppálya nyomvonal
+            if (simState.trail.length > 1) {
+                ctx.strokeStyle = '#10b981';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                simState.trail.forEach((pt, idx) => {
+                    const px = 20 + pt.x * scaleX;
+                    const py = groundY - pt.y * scaleY;
+                    if (idx === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                });
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // Lövedék / Test
+            const ballX = 20 + curX * scaleX;
+            const ballY = groundY - curY * scaleY;
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath();
+            ctx.arc(ballX, ballY, 6, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        // ==========================================
+        // 6. IDŐMEGTAKARÍTÁS KALKULÁTOR & WORKFLOW ÉPÍTŐ
+        // ==========================================
+        function renderChecklist() {
+            const container = document.getElementById('task-checklist');
+            container.innerHTML = weeklyTasks.map(task => {
+                const isChecked = selectedTaskIds.has(task.id);
+                const savedMins = task.tradMinutes - task.aiMinutes;
+                return `
+                    <label onclick="toggleTask('${task.id}')"
+                        class="flex items-start gap-3.5 p-3.5 rounded-xl border transition-all cursor-pointer select-none ${
+                            isChecked 
+                            ? 'bg-emerald-500/15 border-emerald-500/50 text-white' 
+                            : 'bg-slate-900/60 border-slate-700/80 text-slate-300 hover:border-slate-600'
+                        }">
+                        <div class="mt-0.5 w-5 h-5 rounded-md flex items-center justify-center shrink-0 transition ${
+                            isChecked ? 'bg-emerald-500 text-navy-950' : 'border border-slate-500 bg-slate-800'
+                        }">
+                            ${isChecked ? '<i data-lucide="check" class="w-3.5 h-3.5 stroke-[3]"></i>' : ''}
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex flex-wrap items-center justify-between gap-2">
+                                <span class="font-medium text-sm">${task.label}</span>
+                                <span class="text-xs font-mono px-2 py-0.5 rounded bg-slate-800 text-emerald-400 border border-slate-700">
+                                    -${savedMins} perc
+                                </span>
+                            </div>
+                            <span class="text-[11px] text-slate-400 mt-1 block">${task.category} • Hagyományosan ~${task.tradMinutes} perc → Gemini-vel ~${task.aiMinutes} perc</span>
+                        </div>
+                    </label>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+            updateCalculatorStats();
+        }
+
+        function toggleTask(taskId) {
+            if (selectedTaskIds.has(taskId)) {
+                selectedTaskIds.delete(taskId);
+            } else {
+                selectedTaskIds.add(taskId);
+            }
+            renderChecklist();
+        }
+
+        function selectAllTasks() {
+            if (selectedTaskIds.size === weeklyTasks.length) {
+                selectedTaskIds.clear();
+            } else {
+                weeklyTasks.forEach(t => selectedTaskIds.add(t.id));
+            }
+            renderChecklist();
+        }
+
+        function updateCalculatorStats() {
+            let totalTrad = 0;
+            let totalAi = 0;
+            const activeTasks = [];
+
+            weeklyTasks.forEach(task => {
+                if (selectedTaskIds.has(task.id)) {
+                    totalTrad += task.tradMinutes;
+                    totalAi += task.aiMinutes;
+                    activeTasks.push(task);
+                }
+            });
+
+            const savedMins = totalTrad - totalAi;
+            const savedHours = (savedMins / 60).toFixed(1).replace('.', ',');
+            const monthlyHours = ((savedMins * 4) / 60).toFixed(0);
+
+            document.getElementById('saved-hours').textContent = savedHours;
+            document.getElementById('saved-monthly').textContent = `${monthlyHours} óra`;
+            document.getElementById('trad-time').textContent = `${(totalTrad / 60).toFixed(1).replace('.', ',')} óra`;
+            document.getElementById('ai-time').textContent = `${(totalAi / 60).toFixed(1).replace('.', ',')} óra`;
+
+            // Sávok aránya
+            const barAi = document.getElementById('bar-ai');
+            const barSaved = document.getElementById('bar-saved');
+            if (totalTrad > 0) {
+                const aiPct = Math.round((totalAi / totalTrad) * 100);
+                const savedPct = 100 - aiPct;
+                barAi.style.width = `${aiPct}%`;
+                barSaved.style.width = `${savedPct}%`;
+            } else {
+                barAi.style.width = '0%';
+                barSaved.style.width = '0%';
+            }
+
+            // Javasolt Workflow lépések frissítése
+            const wfContainer = document.getElementById('recommended-workflow');
+            if (activeTasks.length === 0) {
+                wfContainer.innerHTML = `<p class="text-slate-400 italic text-xs">Jelölj be legalább egy feladatot a bal oldalon a személyre szabott munkafolyamat megjelenítéséhez.</p>`;
+            } else {
+                wfContainer.innerHTML = activeTasks.map((t, idx) => `
+                    <div class="bg-slate-800/90 border border-slate-700/90 p-3 rounded-xl flex items-start gap-2.5">
+                        <span class="bg-emerald-500/20 text-emerald-400 font-mono text-xs font-bold px-2 py-0.5 rounded shrink-0 mt-0.5">
+                            ${idx + 1}.
+                        </span>
+                        <p class="text-xs text-slate-300 leading-relaxed">${t.workflowTip}</p>
+                    </div>
+                `).join('');
+            }
+        }
+
+        // Segédfüggvény HTML escape-hez
+        function escapeHtml(str) {
+            return str.replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      .replace(/"/g, "&quot;")
+                      .replace(/'/g, "&#039;");
+        }
+
+        // ==========================================
+        // 7. SAJÁT WEBAPP ÉPÍTÉSE (3. NÉZET LOGIKA)
+        // ==========================================
+        const webappTiers = [
+            {
+                id: "tier-1",
+                badge: "1. Szint • Leggyorsabb indulás",
+                title: "Nulla telepítés – Egyfájlos HTML5 / PWA",
+                icon: "file-code-2",
+                summary: "Egyetlen önálló HTML fájl (Tailwind + Canvas + JS), ami böngészőben, pendrive-ról vagy ingyenes linkről is azonnal fut.",
+                whenToUse: "Ideális interaktív fizikai szimulációkhoz (lejtő, inga, lencsék), függvényábrázolóhoz vagy órai interaktív kvízhez. Nem igényel szervert vagy adatbázist, a diákok telefonján QR-kóddal azonnal megnyílik.",
+                pros: ["0 Ft üzemeltetés", "Internet nélkül, pendrive-ról is működik", "Antigravity 1 perc alatt legenerálja"]
+            },
+            {
+                id: "tier-2",
+                badge: "2. Szint • Iskolai adminisztrációhoz",
+                title: "Google Apps Script + Workspace Webapp",
+                icon: "table-properties",
+                summary: "Saját böngészős felület közvetlenül a Google Drive-odra, Táblázataidra és Gmail fiókodra kötve.",
+                whenToUse: "Akkor válaszd, ha a Krétából exportált CSV fájlokat szeretnéd egy kattintással feldolgozni, jegyeket elemezni, vagy személyre szabott szülői e-mail piszkozatokat generálni a saját Google fiókodban.",
+                pros: ["Közvetlen Google Sheets & Gmail kapcsolat", "Iskolai Google fiókkal védhető", "Nincs külön szerverkarbantartás"]
+            },
+            {
+                id: "tier-3",
+                badge: "3. Szint • Teljes osztálytermi portál",
+                title: "React + Python/FastAPI + Adatbázis",
+                icon: "server",
+                summary: "Teljes értékű modern webalkalmazás tanulói belépéssel, pontgyűjtéssel, házifeladat-ellenőrzéssel és tanári statisztikákkal.",
+                whenToUse: "Akkor ideális, ha az egész évfolyamnak vagy munkaközösségnek építesz gyakorló portált, ahol a rendszer elmenti a diákok eredményeit, Pythonban ellenőrzi a levezetéseket és automatikus riportot küld.",
+                pros: ["Tanulói előmenetel mentése", "Valódi Python (SymPy) matek-ellenőrzés", "Skálázható az egész iskolára"]
+            }
+        ];
+
+        const webappModules = [
+            {
+                id: "mod-kreta",
+                label: "Kréta CSV Elemző & Riport",
+                desc: "Jegyek és hiányzások automatikus szűrése, bukásra állók jelzése.",
+                icon: "bar-chart-3",
+                files: ["src/modules/KretaAnalyzer.jsx", "skills/osztalyfonok-skill.md"]
+            },
+            {
+                id: "mod-fizika",
+                label: "Interaktív Fizika Canvas Szimulátor",
+                desc: "Csúszkákkal állítható vektoros mechanikai és optikai kísérletek.",
+                icon: "atom",
+                files: ["src/modules/PhysicsCanvas.jsx", "skills/fizika-szimulacio-skill.md"]
+            },
+            {
+                id: "mod-matek",
+                label: "LaTeX Matek Feladatsor Generátor",
+                desc: "A/B csoportos dolgozatok magyar jelölésekkel (tg, lg) és javítókulccsal.",
+                icon: "sigma",
+                files: ["src/modules/MathExamGenerator.jsx", "skills/matek-erettsegi-skill.md"]
+            },
+            {
+                id: "mod-fogadoora",
+                label: "Szülői Értekezlet Időpontfoglaló",
+                desc: "10 perces idősávok foglalása szülőknek, ütközésvédelemmel.",
+                icon: "calendar-clock",
+                files: ["src/modules/ParentBooking.jsx"]
+            },
+            {
+                id: "mod-qr",
+                label: "Diák QR-kódos Gyakorló Mód",
+                desc: "Óra eleji 5 perces villámteszt azonnali telefonos visszajelzéssel.",
+                icon: "qr-code",
+                files: ["src/modules/StudentQuickQuiz.jsx"]
+            },
+            {
+                id: "mod-kirandulas",
+                label: "Osztálykirándulás Költségvetés Tervező",
+                desc: "Utazási, szállás- és programköltségek kalkulátora szülői nyilatkozattal.",
+                icon: "map",
+                files: ["src/modules/TripPlanner.jsx"]
+            }
+        ];
+
+        let selectedWebappTier = "tier-1";
+        let selectedWebappModules = new Set(["mod-kreta", "mod-fizika", "mod-matek"]);
+        let activeBlueprintTab = "prompt";
+
+        function renderWebappBuilder() {
+            const tiersGrid = document.getElementById('webapp-tiers-grid');
+            const tierDetail = document.getElementById('webapp-tier-detail');
+            const modulesList = document.getElementById('webapp-modules-list');
+            if (!tiersGrid || !tierDetail || !modulesList) return;
+
+            // 1. Architektúra szint kártyák
+            tiersGrid.innerHTML = webappTiers.map(t => {
+                const isSel = t.id === selectedWebappTier;
+                return `
+                    <button onclick="selectWebappTier('${t.id}')"
+                        class="text-left p-5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                            isSel
+                            ? 'bg-slate-800 border-amber-400 shadow-lg shadow-amber-500/10 ring-1 ring-amber-400/50'
+                            : 'bg-slate-800/45 border-slate-700/80 hover:bg-slate-800/75'
+                        }">
+                        <div>
+                            <div class="flex items-center justify-between mb-2.5">
+                                <span class="text-[11px] font-mono font-bold px-2.5 py-0.5 rounded bg-navy-950 text-amber-300 border border-slate-700">${t.badge}</span>
+                                <i data-lucide="${t.icon}" class="w-5 h-5 ${isSel ? 'text-amber-400' : 'text-slate-400'}"></i>
+                            </div>
+                            <h3 class="font-bold text-white text-base sm:text-lg mb-1.5">${t.title}</h3>
+                            <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">${t.summary}</p>
+                        </div>
+                        <div class="mt-4 pt-2.5 border-t border-slate-700/60 flex items-center justify-between text-xs font-semibold">
+                            <span class="text-emerald-400">${isSel ? '✓ Kiválasztott architektúra' : 'Kattints a kiválasztáshoz'}</span>
+                            <span class="text-slate-400">→</span>
+                        </div>
+                    </button>
+                `;
+            }).join('');
+
+            // Kiválasztott szint részletei
+            const activeTierObj = webappTiers.find(t => t.id === selectedWebappTier);
+            tierDetail.innerHTML = `
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                    <div class="space-y-1.5 max-w-3xl">
+                        <h4 class="font-bold text-amber-300 text-base sm:text-lg flex items-center gap-2">
+                            <i data-lucide="${activeTierObj.icon}" class="w-5 h-5"></i>
+                            <span>Mikor válaszd: ${activeTierObj.title}?</span>
+                        </h4>
+                        <p class="text-slate-200 text-sm leading-relaxed">${activeTierObj.whenToUse}</p>
+                    </div>
+                    <div class="flex flex-wrap lg:flex-col gap-2 shrink-0">
+                        ${activeTierObj.pros.map(pro => `
+                            <span class="inline-flex items-center gap-1.5 text-xs font-medium bg-navy-950/90 text-emerald-300 px-3 py-1.5 rounded-xl border border-emerald-500/30">
+                                <i data-lucide="check" class="w-3.5 h-3.5 text-emerald-400"></i>
+                                <span>${pro}</span>
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+
+            // 2. Modul checkboxok
+            modulesList.innerHTML = webappModules.map(m => {
+                const isChecked = selectedWebappModules.has(m.id);
+                return `
+                    <label onclick="toggleWebappModule('${m.id}')"
+                        class="flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer select-none ${
+                            isChecked
+                            ? 'bg-emerald-50/90 border-emerald-400 text-navy-900 shadow-sm'
+                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }">
+                        <div class="mt-0.5 w-5 h-5 rounded-md flex items-center justify-center shrink-0 transition ${
+                            isChecked ? 'bg-emerald-600 text-white' : 'border border-slate-400 bg-white'
+                        }">
+                            ${isChecked ? '<i data-lucide="check" class="w-3.5 h-3.5 stroke-[3]"></i>' : ''}
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-1.5 font-bold text-sm text-navy-900">
+                                <i data-lucide="${m.icon}" class="w-4 h-4 text-emerald-700"></i>
+                                <span>${m.label}</span>
+                            </div>
+                            <p class="text-xs text-slate-600 mt-0.5">${m.desc}</p>
+                        </div>
+                    </label>
+                `;
+            }).join('');
+
+            updateWebappBlueprint();
+            lucide.createIcons();
+        }
+
+        function selectWebappTier(tierId) {
+            selectedWebappTier = tierId;
+            renderWebappBuilder();
+        }
+
+        function toggleWebappModule(modId) {
+            if (selectedWebappModules.has(modId)) {
+                if (selectedWebappModules.size > 1) {
+                    selectedWebappModules.delete(modId);
+                } else {
+                    showToast('Legalább egy modult hagyj kijelölve!');
+                    return;
+                }
+            } else {
+                selectedWebappModules.add(modId);
+            }
+            renderWebappBuilder();
+        }
+
+        function switchBlueprintTab(tabName) {
+            activeBlueprintTab = tabName;
+            const pPrompt = document.getElementById('bp-panel-prompt');
+            const pTree = document.getElementById('bp-panel-tree');
+            const bPrompt = document.getElementById('bp-tab-prompt');
+            const bTree = document.getElementById('bp-tab-tree');
+            const copyLbl = document.getElementById('bp-copy-label');
+
+            if (tabName === 'prompt') {
+                pPrompt.classList.remove('hidden');
+                pTree.classList.add('hidden');
+                bPrompt.classList.add('bg-emerald-500', 'text-navy-950', 'font-bold');
+                bPrompt.classList.remove('text-slate-300', 'hover:text-white', 'font-semibold');
+                bTree.classList.remove('bg-emerald-500', 'text-navy-950', 'font-bold');
+                bTree.classList.add('text-slate-300', 'hover:text-white', 'font-semibold');
+                copyLbl.textContent = 'Master Prompt Másolása';
+            } else {
+                pTree.classList.remove('hidden');
+                pPrompt.classList.add('hidden');
+                bTree.classList.add('bg-emerald-500', 'text-navy-950', 'font-bold');
+                bTree.classList.remove('text-slate-300', 'hover:text-white', 'font-semibold');
+                bPrompt.classList.remove('bg-emerald-500', 'text-navy-950', 'font-bold');
+                bPrompt.classList.add('text-slate-300', 'hover:text-white', 'font-semibold');
+                copyLbl.textContent = 'Mappaszerkezet Másolása';
+            }
+        }
+
+        function updateWebappBlueprint() {
+            const nameInput = document.getElementById('webapp-custom-name');
+            const appName = (nameInput && nameInput.value.trim()) ? nameInput.value.trim() : "Tanári AI Asszisztens Webapp";
+            const activeTier = webappTiers.find(t => t.id === selectedWebappTier);
+            const activeMods = webappModules.filter(m => selectedWebappModules.has(m.id));
+
+            document.getElementById('webapp-module-count').textContent = `${activeMods.length} modul aktív`;
+            document.getElementById('bp-tier-badge').textContent = activeTier.title;
+
+            // 1. Master Prompt összeállítása
+            let techSpec = "";
+            if (selectedWebappTier === "tier-1") {
+                techSpec = "Egyetlen önálló, azonnal futtatható HTML5 fájlban (index.html) valósítsd meg Tailwind CSS, Lucide ikonok és vanilla JavaScript segítségével, hogy internet nélkül, pendrive-ról és mobil böngészőből is hiba nélkül fusson.";
+            } else if (selectedWebappTier === "tier-2") {
+                techSpec = "Google Apps Script (Code.gs + Index.html) architektúrában készítsd el, amely közvetlenül kapcsolódik a Google Táblázatokhoz (Sheets) és a Gmail piszkozatokhoz.";
+            } else {
+                techSpec = "Modern React (Vite + Tailwind) frontenddel és Python FastAPI backenddel készítsd el, ahol a matematikai és fizikai számításokat Python (SymPy/NumPy) ellenőrzi, és az eredmények adatbázisba menthetők.";
+            }
+
+            const modulesText = activeMods.map((m, i) => `${i + 1}. **${m.label}**: ${m.desc}`).join('\n');
+
+            const masterPrompt = `Viselkedj vezető full-stack fejlesztőként és magyar középiskolai matematika–fizika szakos pedagógiai szakértőként!
+Építsd meg a(z) "${appName}" nevű magyar nyelvű tanári és osztálytermi webalkalmazást az alábbi specifikáció alapján:
+
+### Technológiai Architektúra:
+${techSpec}
+
+### Kötelező Funkcionális Modulok:
+${modulesText}
+
+### Magyar Oktatási és UX Előírások:
+- Minden matematikai és fizikai jelölés kövesse a magyar középiskolai szabványt (pl. tg α, lg x, g = 9,81 m/s², SI mértékegységek, tizedesvessző).
+- Legyen mobilbarát, nagy kontrasztú, kivetítőn is kiválóan olvasható felülete.
+- Minden adatműveletnél (pl. Kréta CSV elemzés vagy szülői levelek) építs be emberi jóváhagyási lépést (Human-in-the-loop) és adatvédelmi anonimizálást.
+- A generálás végén adj rövid útmutatót a publikáláshoz (Vercel / GitHub Pages / Google Apps Script)!`;
+
+            document.getElementById('bp-prompt-output').textContent = masterPrompt;
+
+            // 2. Mappaszerkezet összeállítása
+            const slug = appName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'tanari-webapp';
+            let treeText = `${slug}/\n├── .antigravity/\n│   └── skills/\n`;
+            if (selectedWebappModules.has('mod-matek')) treeText += `│       ├── matek-erettsegi-skill.md\n`;
+            if (selectedWebappModules.has('mod-fizika')) treeText += `│       ├── fizika-szimulacio-skill.md\n`;
+            if (selectedWebappModules.has('mod-kreta') || selectedWebappModules.has('mod-fogadoora') || selectedWebappModules.has('mod-kirandulas')) {
+                treeText += `│       └── osztalyfonok-skill.md\n`;
+            }
+
+            if (selectedWebappTier === "tier-1") {
+                treeText += `├── index.html                  <-- Komplett egyfájlos alkalmazás (HTML + CSS + JS)\n├── manifest.json               <-- Mobilra telepíthető PWA konfiguráció\n└── README.md                   <-- Használati és QR-kódos megosztási útmutató`;
+            } else if (selectedWebappTier === "tier-2") {
+                treeText += `├── Code.gs                     <-- Google Apps Script szerveroldal (Sheets & Gmail)\n├── Index.html                  <-- Reszponzív tanári webes felület\n└── appsscript.json             <-- Google Workspace jogosultságok`;
+            } else {
+                treeText += `├── frontend/\n│   ├── src/\n│   │   ├── App.jsx\n`;
+                activeMods.forEach(m => {
+                    treeText += `│   │   ├── ${m.files[0]}\n`;
+                });
+                treeText += `├── backend/\n│   ├── main.py                 <-- Python FastAPI végpontok\n│   └── math_verifier.py        <-- SymPy & fizikai számítás-ellenőrző\n└── docker-compose.yml`;
+            }
+
+            document.getElementById('bp-tree-output').textContent = treeText;
+        }
+
+        function copyBlueprintOutput() {
+            const text = activeBlueprintTab === 'prompt'
+                ? document.getElementById('bp-prompt-output').textContent
+                : document.getElementById('bp-tree-output').textContent;
+            copyToClipboard(text);
+            showToast(activeBlueprintTab === 'prompt' ? 'Master Prompt a vágólapra másolva!' : 'Mappaszerkezet a vágólapra másolva!');
+        }
+
+        // Determinisztikus QR-kód vizuális generátor az osztálytermi előnézethez
+        function renderLiveQrPreview() {
+            const canvas = document.getElementById('qr-preview-canvas');
+            const input = document.getElementById('qr-url-input');
+            const caption = document.getElementById('qr-caption');
+            if (!canvas || !input) return;
+
+            const url = input.value.trim() || "https://katedra-ai.vercel.app";
+            if (caption) caption.textContent = url.replace(/^https?:\/\//, '');
+
+            const ctx = canvas.getContext('2d');
+            const size = canvas.width;
+            const cells = 21;
+            const cellSize = Math.floor(size / cells);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, size, size);
+
+            // Egyszerű hash a szövegből
+            let hash = 2166136261;
+            for (let i = 0; i < url.length; i++) {
+                hash ^= url.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
+            }
+
+            function drawFinder(ox, oy) {
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect(ox * cellSize, oy * cellSize, 7 * cellSize, 7 * cellSize);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect((ox + 1) * cellSize, (oy + 1) * cellSize, 5 * cellSize, 5 * cellSize);
+                ctx.fillStyle = '#0f172a';
+                ctx.fillRect((ox + 2) * cellSize, (oy + 2) * cellSize, 3 * cellSize, 3 * cellSize);
+            }
+
+            // 3 sarok pozicionáló négyzet
+            drawFinder(0, 0);
+            drawFinder(cells - 7, 0);
+            drawFinder(0, cells - 7);
+
+            // Adatmodulok rajzolása
+            ctx.fillStyle = '#0f172a';
+            for (let r = 0; r < cells; r++) {
+                for (let c = 0; c < cells; c++) {
+                    const inTopLeft = r < 8 && c < 8;
+                    const inTopRight = r < 8 && c >= cells - 8;
+                    const inBottomLeft = r >= cells - 8 && c < 8;
+                    if (inTopLeft || inTopRight || inBottomLeft) continue;
+
+                    const seed = Math.abs(Math.sin(hash + r * 31 + c * 17));
+                    if (seed > 0.48) {
+                        ctx.fillRect(c * cellSize, r * cellSize, cellSize - 0.5, cellSize - 0.5);
+                    }
+                }
+            }
+        }
+
+        // Inicializálás az oldal betöltésekor
+        window.addEventListener('DOMContentLoaded', () => {
+            renderPillars();
+            renderIdeExplorer();
+            renderAgentSimulator();
+            renderRoleContent('matek');
+            renderChecklist();
+            renderWebappBuilder();
+            renderLiveQrPreview();
+            switchMainView('webapp');
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
