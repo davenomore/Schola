@@ -45,3 +45,6 @@ login_page.png
 *.sln
 *.sw?
 Thumbs.db
+
+# Kréta munkamenet (sütik) - ne kerüljön a repóba
+server/kreta_session.json
