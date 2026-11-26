@@ -742,7 +742,7 @@ app.post('/api/quiz-arena/ai-generate', (req, res) => {
   try {
     const { topic, questionCount = 3, subject = 'Általános', documentName, documentText } = req.body;
     const safeTopic = topic ? topic.trim() : (documentName ? documentName.replace(/\.[^/.]+$/, '') : 'Általános Műveltség');
-    const count = Math.max(1, Math.min(8, Number(questionCount) || 3));
+    const count = Math.max(1, Math.min(30, Number(questionCount) || 3));
 
     const generatedQuestions = [];
 

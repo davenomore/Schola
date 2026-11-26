@@ -306,10 +306,11 @@ export default function QuizArenaTool({ addNotification }) {
       // Ha fájlfeltöltés van, a dokumentumot közvetlenül adjuk át az AI-nak
       const effectiveDocFile = (isDoc && aiDocumentTab === 'upload') ? aiDocumentFile : null;
       const effectiveDocText = (isDoc && aiDocumentTab === 'paste') ? aiDocumentText.trim() : '';
+      const count = Math.max(1, Math.min(30, Number(aiQuestionCount) || 5));
 
       const generated = await quizArenaService.generateAiQuiz({
         topic: aiTopic.trim(),
-        questionCount: aiQuestionCount,
+        questionCount: count,
         subject: aiSubject,
         questionTypes: aiQuestionTypes,
         sourceMode: aiSourceMode,
@@ -2265,26 +2266,63 @@ export default function QuizArenaTool({ addNotification }) {
               {/* Kérdések száma és Tantárgy */}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
-                    Kérdések száma:
-                  </label>
-                  <select
-                    value={aiQuestionCount}
-                    onChange={(e) => setAiQuestionCount(Number(e.target.value))}
-                    style={{
-                      width: '100%',
-                      padding: '10px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--panel-border)',
-                      background: 'var(--panel-bg)',
-                      color: 'var(--text-primary)'
-                    }}
-                  >
-                    <option value={3}>3 kérdés (Gyors villámkvíz)</option>
-                    <option value={4}>4 kérdés (Normál)</option>
-                    <option value={5}>5 kérdés (Részletes)</option>
-                    <option value={8}>8 kérdés (Bajnokság)</option>
-                  </select>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <label style={{ fontSize: '12px', fontWeight: 700 }}>
+                      Kérdések száma:
+                    </label>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                      (1 – 30 db)
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <input
+                      type="number"
+                      min={1}
+                      max={30}
+                      value={aiQuestionCount}
+                      onChange={(e) => {
+                        const val = e.target.value === '' ? '' : parseInt(e.target.value, 10);
+                        setAiQuestionCount(val);
+                      }}
+                      onBlur={() => {
+                        if (!aiQuestionCount || aiQuestionCount < 1) setAiQuestionCount(3);
+                        else if (aiQuestionCount > 30) setAiQuestionCount(30);
+                      }}
+                      placeholder="db"
+                      style={{
+                        width: '72px',
+                        padding: '10px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--panel-border)',
+                        background: 'var(--panel-bg)',
+                        color: 'var(--text-primary)',
+                        fontWeight: 800,
+                        fontSize: '15px',
+                        textAlign: 'center'
+                      }}
+                    />
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                      {[3, 5, 8, 10, 15].map(cnt => (
+                        <button
+                          key={cnt}
+                          type="button"
+                          onClick={() => setAiQuestionCount(cnt)}
+                          style={{
+                            padding: '6px 8px',
+                            borderRadius: '6px',
+                            border: Number(aiQuestionCount) === cnt ? '1.5px solid #1368ce' : '1px solid var(--panel-border)',
+                            background: Number(aiQuestionCount) === cnt ? 'rgba(19, 104, 206, 0.12)' : 'var(--panel-bg)',
+                            color: Number(aiQuestionCount) === cnt ? '#1368ce' : 'var(--text-secondary)',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {cnt} db
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
                 <div>

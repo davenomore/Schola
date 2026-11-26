@@ -244,7 +244,7 @@ export const quizArenaService = {
   }) {
     const ARENA_COLORS = ['#e21b3c', '#1368ce', '#ffa602', '#26890c'];
     const ARENA_SHAPES = ['▲', '◆', '●', '■'];
-    const count = Math.max(1, Math.min(8, Number(questionCount) || 3));
+    const count = Math.max(1, Math.min(30, Number(questionCount) || 3));
     const safeTopic = topic ? topic.trim() : (documentFile?.name ? documentFile.name.replace(/\.[^/.]+$/, '') : 'Általános témakör');
     const safeSubject = subject || 'Általános';
     const isDocMode = sourceMode === 'document';
