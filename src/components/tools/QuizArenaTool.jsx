@@ -91,10 +91,13 @@ export default function QuizArenaTool({ addNotification }) {
   const [aiFileReading, setAiFileReading] = useState(false);
   const fileInputRef = useRef(null);
 
-  // QR & Network IP
+  // QR & Network IP & PIN controls
   const [networkIp, setNetworkIp] = useState(() => localStorage.getItem('schola_network_ip') || '');
   const [useNetworkIp, setUseNetworkIp] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [staticQrCode, setStaticQrCode] = useState(() => localStorage.getItem('schola_static_qr') !== 'false'); // Alapértelmezetten true: állandó, soha nem változó QR kód
+  const [isEditingPin, setIsEditingPin] = useState(false);
+  const [customPinInput, setCustomPinInput] = useState('');
 
   // Question Timer
   const [timeLeft, setTimeLeft] = useState(20);
@@ -116,9 +119,10 @@ export default function QuizArenaTool({ addNotification }) {
     const protocol = window.location.protocol;
     const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     const host = (useNetworkIp && networkIp && isLocal) ? `${networkIp}${port}` : window.location.host;
-    const pinParam = activeSession?.pin ? `&pin=${activeSession.pin}` : '';
+    // Ha az állandó QR kód be van kapcsolva, nincs benne a folyamatosan változó PIN paraméter, így a QR kód soha nem változik!
+    const pinParam = (!staticQrCode && activeSession?.pin) ? `&pin=${activeSession.pin}` : '';
     return `${protocol}//${host}${window.location.pathname}?join=quiz${pinParam}`;
-  }, [networkIp, useNetworkIp, activeSession?.pin]);
+  }, [networkIp, useNetworkIp, activeSession?.pin, staticQrCode]);
 
   const qrMatrix = useMemo(() => {
     try {
@@ -1279,31 +1283,148 @@ export default function QuizArenaTool({ addNotification }) {
                   Csatlakozz a telefonoddal!
                 </div>
                 
-                {/* BIG PIN BADGE */}
-                <div style={{
-                  display: 'inline-block',
-                  background: '#18181b',
-                  color: '#ffffff',
-                  padding: '12px 36px',
-                  borderRadius: '16px',
-                  fontSize: '44px',
-                  fontWeight: 900,
-                  letterSpacing: '6px',
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-                  marginBottom: '20px'
-                }}>
-                  PIN: {activeSession.pin}
+                {/* BIG PIN BADGE & CONTROLS */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                  {isEditingPin ? (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#18181b', padding: '10px 18px', borderRadius: '16px' }}>
+                      <input
+                        type="text"
+                        value={customPinInput}
+                        onChange={(e) => setCustomPinInput(e.target.value)}
+                        placeholder="PIN kód"
+                        autoFocus
+                        style={{
+                          width: '180px',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          border: '2px solid #1368ce',
+                          fontSize: '26px',
+                          fontWeight: 900,
+                          textAlign: 'center',
+                          letterSpacing: '4px',
+                          background: '#27272a',
+                          color: '#fff',
+                          outline: 'none'
+                        }}
+                      />
+                      <button
+                        onClick={async () => {
+                          if (!customPinInput.trim()) return;
+                          const res = await quizArenaService.updatePin(customPinInput.trim());
+                          if (res && res.success) {
+                            setActiveSession(prev => ({ ...prev, pin: res.pin }));
+                            setIsEditingPin(false);
+                            if (addNotification) addNotification('PIN kód sikeresen módosítva!', 'success');
+                          }
+                        }}
+                        style={{
+                          padding: '10px 16px',
+                          borderRadius: '8px',
+                          border: 'none',
+                          background: '#26890c',
+                          color: '#fff',
+                          fontWeight: 800,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Mentés
+                      </button>
+                      <button
+                        onClick={() => setIsEditingPin(false)}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '8px',
+                          border: '1px solid #52525b',
+                          background: 'transparent',
+                          color: '#a1a1aa',
+                          fontWeight: 700,
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Mégse
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div style={{
+                        display: 'inline-block',
+                        background: '#18181b',
+                        color: '#ffffff',
+                        padding: '12px 36px',
+                        borderRadius: '16px',
+                        fontSize: '44px',
+                        fontWeight: 900,
+                        letterSpacing: '6px',
+                        boxShadow: '0 8px 24px rgba(0,0,0,0.2)'
+                      }}>
+                        PIN: {activeSession.pin}
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <button
+                          onClick={() => {
+                            setCustomPinInput(activeSession.pin);
+                            setIsEditingPin(true);
+                          }}
+                          title="Saját állandó teremkód vagy egyedi PIN megadása"
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--panel-border)',
+                            background: 'var(--panel-bg)',
+                            color: 'var(--text-secondary)',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          ✏️ PIN átírása
+                        </button>
+                        <button
+                          onClick={async () => {
+                            const res = await quizArenaService.updatePin(null);
+                            if (res && res.success) {
+                              setActiveSession(prev => ({ ...prev, pin: res.pin }));
+                              if (addNotification) addNotification('Új PIN kód generálva!', 'success');
+                            }
+                          }}
+                          title="Új véletlenszerű PIN kód generálása"
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--panel-border)',
+                            background: 'var(--panel-bg)',
+                            color: 'var(--text-secondary)',
+                            fontSize: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          🎲 Új PIN
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 {/* QR CODE DISPLAY */}
-                <div style={{ marginBottom: '20px' }}>
-                  <div style={{
-                    display: 'inline-block',
-                    background: '#ffffff',
-                    padding: '16px',
-                    borderRadius: '16px',
-                    boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
-                  }}>
+                <div style={{ marginBottom: '24px' }}>
+                  <div
+                    id="quiz-qr-container"
+                    style={{
+                      display: 'inline-block',
+                      background: '#ffffff',
+                      padding: '16px',
+                      borderRadius: '16px',
+                      boxShadow: '0 8px 24px rgba(0,0,0,0.1)'
+                    }}
+                  >
                     {qrMatrix ? (
                       <svg width="200" height="200" viewBox={`0 0 ${qrMatrix.length} ${qrMatrix.length}`}>
                         {qrMatrix.map((row, r) =>
@@ -1323,14 +1444,91 @@ export default function QuizArenaTool({ addNotification }) {
                       <div>QR Kód generálása...</div>
                     )}
                   </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginTop: '8px' }}>
-                    Webcím: <strong>{joinUrl}</strong>
-                    <button
-                      onClick={handleCopyLink}
-                      style={{ marginLeft: '8px', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--panel-border)', background: 'var(--panel-bg)', cursor: 'pointer', fontSize: '11px' }}
-                    >
-                      {copiedLink ? 'Másolva!' : 'Link másolása'}
-                    </button>
+
+                  {/* QR KÓD BEÁLLÍTÁSOK & ÁLLANDÓSÁG */}
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', marginTop: '12px' }}>
+                    <label style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '13px',
+                      fontWeight: 700,
+                      color: staticQrCode ? '#26890c' : 'var(--text-primary)',
+                      cursor: 'pointer',
+                      background: staticQrCode ? 'rgba(38, 137, 12, 0.08)' : 'var(--hover-bg, rgba(0,0,0,0.03))',
+                      padding: '6px 14px',
+                      borderRadius: '20px',
+                      border: staticQrCode ? '1.5px solid rgba(38, 137, 12, 0.4)' : '1px solid var(--panel-border)',
+                      userSelect: 'none'
+                    }}>
+                      <input
+                        type="checkbox"
+                        checked={staticQrCode}
+                        onChange={(e) => {
+                          const val = e.target.checked;
+                          setStaticQrCode(val);
+                          localStorage.setItem('schola_static_qr', String(val));
+                        }}
+                        style={{ cursor: 'pointer', width: '16px', height: '16px' }}
+                      />
+                      <span>🔒 Állandó (fix) QR kód – Nem változik új játéknál sem</span>
+                    </label>
+
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', maxWidth: '440px', textAlign: 'center', lineHeight: 1.4 }}>
+                      {staticQrCode
+                        ? 'A QR kód mindig változatlan marad, így nyugodtan kinyomtathatod a padokra! Beolvasáskor a diák telefonja automatikusan betölti a táblán lévő PIN kódot.'
+                        : 'A QR kód tartalmazza a változó PIN paramétert az URL-ben, így minden PIN váltásnál újrarajzolódik.'}
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', flexWrap: 'wrap', justifyContent: 'center' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        Webcím: <strong>{joinUrl}</strong>
+                      </span>
+                      <button
+                        onClick={handleCopyLink}
+                        style={{ padding: '3px 10px', borderRadius: '6px', border: '1px solid var(--panel-border)', background: 'var(--panel-bg)', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}
+                      >
+                        {copiedLink ? 'Másolva!' : 'Link másolása'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const qrHtml = document.querySelector('#quiz-qr-container')?.innerHTML || '';
+                          const win = window.open('', '_blank');
+                          if (win) {
+                            win.document.write(`
+                              <!DOCTYPE html>
+                              <html>
+                              <head>
+                                <title>Schola Kvíz Aréna - Csatlakozás</title>
+                                <style>
+                                  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; text-align: center; padding: 40px; margin: 0; }
+                                  .card { display: inline-block; border: 2px solid #e4e4e7; border-radius: 24px; padding: 36px 48px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); }
+                                  h1 { margin: 0 0 8px 0; font-size: 28px; color: #18181b; }
+                                  p { color: #71717a; font-size: 15px; margin: 0 0 24px 0; }
+                                  .url { margin-top: 20px; font-weight: 700; color: #1368ce; font-size: 16px; word-break: break-all; }
+                                  .pin-box { margin-top: 14px; display: inline-block; background: #18181b; color: #fff; padding: 8px 20px; border-radius: 12px; font-weight: 900; font-size: 20px; letter-spacing: 2px; }
+                                </style>
+                              </head>
+                              <body>
+                                <div class="card">
+                                  <h1>SCHOLA KVÍZ ARÉNA</h1>
+                                  <p>Olvasd be a telefonoddal a csatlakozáshoz!</p>
+                                  ${qrHtml}
+                                  <div class="url">${joinUrl}</div>
+                                  ${!staticQrCode ? `<div class="pin-box">PIN: ${activeSession.pin}</div>` : ''}
+                                </div>
+                                <script>window.onload = function() { window.print(); }</script>
+                              </body>
+                              </html>
+                            `);
+                            win.document.close();
+                          }
+                        }}
+                        style={{ padding: '3px 10px', borderRadius: '6px', border: '1px solid #1368ce', background: 'rgba(19,104,206,0.08)', color: '#1368ce', cursor: 'pointer', fontSize: '11px', fontWeight: 700 }}
+                      >
+                        🖨️ QR Nyomtatása
+                      </button>
+                    </div>
                   </div>
                 </div>
 

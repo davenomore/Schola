@@ -1121,12 +1121,13 @@ app.get('/api/quiz-arena/state', (req, res) => {
 
 // 6. Új élő kvíz indítása egy kiválasztott sablonból (Lobby állapotba helyezés)
 app.post('/api/quiz-arena/init', (req, res) => {
-  const { quiz } = req.body;
-  const newPin = String(Math.floor(100000 + Math.random() * 900000));
+  const { quiz, pin } = req.body;
+  // Ha a tanár megadott PIN-t, azt használjuk, különben megtartjuk az aktuális PIN-t (nem változtatjuk feleslegesen)
+  const sessionPin = (pin && String(pin).trim()) || quizSession?.pin || '582914';
   
   quizSession = {
     id: 'session-' + Date.now(),
-    pin: newPin,
+    pin: sessionPin,
     status: 'lobby',
     quizId: quiz?.id || 'custom',
     title: quiz?.title || 'Schola Kvíz',
@@ -1139,6 +1140,17 @@ app.post('/api/quiz-arena/init', (req, res) => {
   };
 
   res.json({ success: true, ...quizSession });
+});
+
+// 6.b PIN módosítása vagy újragenerálása
+app.post('/api/quiz-arena/pin', (req, res) => {
+  const { pin } = req.body;
+  if (pin && String(pin).trim()) {
+    quizSession.pin = String(pin).trim();
+  } else {
+    quizSession.pin = String(Math.floor(100000 + Math.random() * 900000));
+  }
+  res.json({ success: true, pin: quizSession.pin });
 });
 
 // 7. Diák csatlakozása a Lobbyhoz névvel és PIN-nel

@@ -34,6 +34,11 @@ export default function StudentQuizView() {
       if (state && state.id) {
         setSession(state);
 
+        // Ha a diák még nem lépett be és nincs beírva PIN, automatikusan kitöltjük az aktív játék PIN-jét (pl. állandó QR kód esetén)
+        if (!hasJoined && state.pin) {
+          setPinInput(prev => (prev && prev.trim().length > 0) ? prev : state.pin);
+        }
+
         // Ha új kérdés indult
         if (state.status === 'question' && state.currentQuestionIndex !== prevQuestionIndex.current) {
           prevQuestionIndex.current = state.currentQuestionIndex;

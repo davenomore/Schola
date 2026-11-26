@@ -514,17 +514,29 @@ KÖVETELMÉNYEK:
     return null;
   },
 
-  async initSession(quiz) {
+  async initSession(quiz, pin = null) {
     try {
       const res = await fetch(`${API_BASE}/api/quiz-arena/init`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ quiz })
+        body: JSON.stringify({ quiz, pin })
       });
       if (res.ok) {
         const json = await res.json();
         if (json.success) return json;
       }
+    } catch {}
+    return null;
+  },
+
+  async updatePin(pin = null) {
+    try {
+      const res = await fetch(`${API_BASE}/api/quiz-arena/pin`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin })
+      });
+      if (res.ok) return await res.json();
     } catch {}
     return null;
   },
