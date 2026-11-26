@@ -21,6 +21,7 @@ export default function StudentQuizView() {
   const [answerResult, setAnswerResult] = useState(null);
   const [questionStartTime, setQuestionStartTime] = useState(Date.now());
   const [timeLeft, setTimeLeft] = useState(20);
+  const [numericInput, setNumericInput] = useState('');
 
   const prevQuestionIndex = useRef(-1);
 
@@ -37,6 +38,7 @@ export default function StudentQuizView() {
         if (state.status === 'question' && state.currentQuestionIndex !== prevQuestionIndex.current) {
           prevQuestionIndex.current = state.currentQuestionIndex;
           setSelectedOptionId(null);
+          setNumericInput('');
           setHasAnswered(false);
           setAnswerResult(null);
           setQuestionStartTime(Date.now());
@@ -100,7 +102,7 @@ export default function StudentQuizView() {
     }
   };
 
-  const handleAnswer = async (optionId) => {
+  const handleAnswer = async (optionId, numericAnswer = null) => {
     if (hasAnswered || session?.status !== 'question') return;
     const responseTimeMs = Math.max(200, Date.now() - questionStartTime);
     setSelectedOptionId(optionId);
@@ -110,6 +112,7 @@ export default function StudentQuizView() {
       const res = await quizArenaService.submitAnswer({
         playerId,
         optionId,
+        numericAnswer,
         responseTimeMs
       });
       if (res && res.success) {
@@ -352,8 +355,170 @@ export default function StudentQuizView() {
                   Várakozás az idő lejártára vagy a többiekre...
                 </p>
               </div>
+            ) : currentQ?.type === 'true-false' ? (
+              /* A) TRUE / FALSE TOUCH BUTTONS */
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '14px' }}>
+                <button
+                  onClick={() => handleAnswer('opt-true')}
+                  style={{
+                    minHeight: '140px',
+                    borderRadius: '18px',
+                    border: 'none',
+                    background: '#26890c',
+                    color: '#ffffff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '20px',
+                    cursor: 'pointer',
+                    boxShadow: '0 8px 24px rgba(38, 137, 12, 0.4)',
+                    gap: '10px',
+                    transition: 'transform 0.1s ease'
+                  }}
+                >
+                  <span style={{ fontSize: '44px', lineHeight: 1 }}>✓</span>
+                  <span style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '1px' }}>IGAZ</span>
+                </button>
+
+                <button
+                  onClick={() => handleAnswer('opt-false')}
+                  style={{
+                    minHeight: '140px',
+                    borderRadius: '18px',
+                    border: 'none',
+                    background: '#e21b3c',
+                    color: '#ffffff',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '20px',
+                    cursor: 'pointer',
+                    boxShadow: '0 8px 24px rgba(226, 27, 60, 0.4)',
+                    gap: '10px',
+                    transition: 'transform 0.1s ease'
+                  }}
+                >
+                  <span style={{ fontSize: '44px', lineHeight: 1 }}>✗</span>
+                  <span style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '1px' }}>HAMIS</span>
+                </button>
+              </div>
+            ) : currentQ?.type === 'numeric' ? (
+              /* B) NUMERIC CALCULATION INPUT & KEYPAD */
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  if (!numericInput.trim()) return;
+                  const parsed = parseFloat(numericInput.replace(',', '.'));
+                  if (isNaN(parsed)) return;
+                  handleAnswer(null, parsed);
+                }}
+                style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}
+              >
+                <div style={{
+                  background: 'rgba(255,255,255,0.12)',
+                  borderRadius: '16px',
+                  padding: '16px 20px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px solid rgba(255,255,255,0.25)',
+                  backdropFilter: 'blur(8px)'
+                }}>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={numericInput}
+                    onChange={(e) => setNumericInput(e.target.value)}
+                    placeholder="0.00"
+                    autoFocus
+                    style={{
+                      width: '100%',
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#ffffff',
+                      fontSize: '32px',
+                      fontWeight: 900,
+                      textAlign: 'center',
+                      outline: 'none',
+                      letterSpacing: '1px'
+                    }}
+                  />
+                  {currentQ?.unit && (
+                    <span style={{ fontSize: '18px', fontWeight: 800, color: '#ffa602', marginLeft: '8px', flexShrink: 0 }}>
+                      {currentQ.unit}
+                    </span>
+                  )}
+                </div>
+
+                {/* Quick numeric buttons for phone touch screens */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {['1', '2', '3', '4', '5', '6', '7', '8', '9', '-', '0', ','].map(char => (
+                    <button
+                      key={char}
+                      type="button"
+                      onClick={() => setNumericInput(prev => {
+                        if (char === '-' && prev.length > 0) return prev;
+                        if (char === ',' && (prev.includes(',') || prev.includes('.'))) return prev;
+                        return prev + char;
+                      })}
+                      style={{
+                        padding: '12px',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: 'rgba(255,255,255,0.15)',
+                        color: '#fff',
+                        fontSize: '22px',
+                        fontWeight: 700,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {char}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => setNumericInput(prev => prev.slice(0, -1))}
+                    style={{
+                      flex: 1,
+                      padding: '14px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: 'rgba(239, 68, 68, 0.25)',
+                      color: '#fca5a5',
+                      fontWeight: 800,
+                      fontSize: '14px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    ⌫ Törlés
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={!numericInput.trim()}
+                    style={{
+                      flex: 2,
+                      padding: '14px',
+                      borderRadius: '12px',
+                      border: 'none',
+                      background: numericInput.trim() ? '#26890c' : 'rgba(255,255,255,0.2)',
+                      color: '#fff',
+                      fontWeight: 900,
+                      fontSize: '16px',
+                      cursor: numericInput.trim() ? 'pointer' : 'not-allowed',
+                      boxShadow: numericInput.trim() ? '0 6px 20px rgba(38,137,12,0.4)' : 'none'
+                    }}
+                  >
+                    VÁLASZ BEKÜLDÉSE ➔
+                  </button>
+                </div>
+              </form>
             ) : (
-              /* 4 BIG ARENA TOUCH BLOCKS - Kényelmesen kiférő, auto-skálázódó válaszgombok */
+              /* C) 4 BIG ARENA TOUCH BLOCKS (Multiple choice) */
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
                 {(currentQ?.options || []).map((opt) => {
                   const len = opt.text?.length || 0;

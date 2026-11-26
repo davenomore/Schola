@@ -103,7 +103,15 @@ export default function ApiKeySettings({ addNotification }) {
         </label>
         <div style={{ display: 'flex', gap: '8px' }}>
           <input
-            type={showKey ? 'text' : 'password'}
+            type="text"
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="off"
+            spellCheck="false"
+            name="gemini_api_key_schola"
+            data-lpignore="true"
+            data-1p-ignore="true"
+            data-form-type="other"
             value={apiKey}
             onChange={(e) => {
               setApiKey(e.target.value);
@@ -116,7 +124,8 @@ export default function ApiKeySettings({ addNotification }) {
               padding: '8px 12px',
               borderRadius: '4px',
               fontFamily: 'monospace',
-              fontSize: '13px'
+              fontSize: '13px',
+              WebkitTextSecurity: showKey ? 'none' : 'disc'
             }}
           />
           <button

@@ -704,7 +704,8 @@ let quizSession = {
     { id: 'p-1', name: 'Bence', score: 1850, streak: 2, answered: false, lastPoints: 920, lastAnswerCorrect: true },
     { id: 'p-2', name: 'Zsófi', score: 1720, streak: 2, answered: false, lastPoints: 860, lastAnswerCorrect: true },
     { id: 'p-3', name: 'Dániel', score: 950, streak: 1, answered: false, lastPoints: 950, lastAnswerCorrect: true }
-  ]
+  ],
+  answersHistory: {}
 };
 
 // 1. Mentett kvízek lekérése
@@ -1087,7 +1088,8 @@ app.get('/api/quiz-arena/state', (req, res) => {
   if (currentQ) {
     safeQ = {
       ...currentQ,
-      correctOptionId: (isStudent && quizSession.status === 'question') ? null : currentQ.correctOptionId
+      correctOptionId: (isStudent && quizSession.status === 'question') ? null : currentQ.correctOptionId,
+      correctAnswer: (isStudent && quizSession.status === 'question') ? null : currentQ.correctAnswer
     };
   }
 
@@ -1104,6 +1106,7 @@ app.get('/api/quiz-arena/state', (req, res) => {
     questionStartTime: quizSession.questionStartTime,
     playersCount: quizSession.players.length,
     answeredCount: quizSession.players.filter(p => p.answered).length,
+    answersHistory: isStudent ? undefined : (quizSession.answersHistory || {}),
     players: quizSession.players.map(p => ({
       id: p.id,
       name: p.name,
@@ -1131,7 +1134,8 @@ app.post('/api/quiz-arena/init', (req, res) => {
     timeLimit: 20,
     questionStartTime: 0,
     questions: quiz?.questions && quiz.questions.length > 0 ? quiz.questions : savedQuizzes[0].questions,
-    players: []
+    players: [],
+    answersHistory: {}
   };
 
   res.json({ success: true, ...quizSession });
@@ -1190,7 +1194,7 @@ app.post('/api/quiz-arena/start', (req, res) => {
 
 // 9. Diák válaszának beküldése
 app.post('/api/quiz-arena/answer', (req, res) => {
-  const { playerId, optionId, responseTimeMs } = req.body;
+  const { playerId, optionId, numericAnswer, responseTimeMs } = req.body;
   if (quizSession.status !== 'question') {
     return res.status(400).json({ success: false, message: 'A válaszadási idő már lezárult!' });
   }
@@ -1205,7 +1209,22 @@ app.post('/api/quiz-arena/answer', (req, res) => {
     return res.status(400).json({ success: false, message: 'Nincs aktív kérdés.' });
   }
 
-  const isCorrect = (optionId === currentQ.correctOptionId);
+  let isCorrect = false;
+  if (currentQ.type === 'numeric') {
+    const userVal = String(numericAnswer !== undefined ? numericAnswer : '').replace(',', '.').trim();
+    const targetVal = String(currentQ.correctAnswer !== undefined ? currentQ.correctAnswer : '').replace(',', '.').trim();
+    const userNum = parseFloat(userVal);
+    const targetNum = parseFloat(targetVal);
+    const tol = parseFloat(currentQ.tolerance || 0);
+    if (!isNaN(userNum) && !isNaN(targetNum)) {
+      isCorrect = Math.abs(userNum - targetNum) <= tol;
+    } else {
+      isCorrect = userVal.toLowerCase() === targetVal.toLowerCase();
+    }
+  } else {
+    isCorrect = (optionId === currentQ.correctOptionId);
+  }
+
   const timeLimit = (currentQ.timeLimit || 20) * 1000;
   const elapsed = Math.min(timeLimit, Math.max(200, Number(responseTimeMs) || 5000));
   
@@ -1226,6 +1245,28 @@ app.post('/api/quiz-arena/answer', (req, res) => {
   player.answered = true;
   player.lastAnswerCorrect = isCorrect;
   player.lastPoints = points;
+
+  // Válasz mentése a statisztikai történetbe
+  if (!quizSession.answersHistory) quizSession.answersHistory = {};
+  const qIdx = quizSession.currentQuestionIndex;
+  if (!quizSession.answersHistory[qIdx]) quizSession.answersHistory[qIdx] = [];
+  
+  const existingRespIdx = quizSession.answersHistory[qIdx].findIndex(r => r.playerId === player.id);
+  const respItem = {
+    playerId: player.id,
+    playerName: player.name,
+    optionId: optionId || null,
+    numericAnswer: numericAnswer !== undefined ? String(numericAnswer).trim() : null,
+    isCorrect,
+    points,
+    responseTimeMs: elapsed
+  };
+
+  if (existingRespIdx >= 0) {
+    quizSession.answersHistory[qIdx][existingRespIdx] = respItem;
+  } else {
+    quizSession.answersHistory[qIdx].push(respItem);
+  }
 
   res.json({
     success: true,
@@ -1271,6 +1312,7 @@ app.post('/api/quiz-arena/next', (req, res) => {
 app.post('/api/quiz-arena/reset', (req, res) => {
   quizSession.status = 'lobby';
   quizSession.currentQuestionIndex = 0;
+  quizSession.answersHistory = {};
   quizSession.players.forEach(p => {
     p.score = 0;
     p.streak = 0;
@@ -1279,6 +1321,20 @@ app.post('/api/quiz-arena/reset', (req, res) => {
     p.lastPoints = 0;
   });
   res.json({ success: true, ...quizSession });
+});
+
+// 14. Teljes Tanári Riport lekérése
+app.get('/api/quiz-arena/report', (req, res) => {
+  res.json({
+    success: true,
+    quiz: {
+      id: quizSession.quizId,
+      title: quizSession.title,
+      questions: quizSession.questions
+    },
+    players: quizSession.players,
+    answersHistory: quizSession.answersHistory || {}
+  });
 });
 
 // Központi műszerfal-konfiguráció mentése és betöltése (összeszköz-szinkronizáció)

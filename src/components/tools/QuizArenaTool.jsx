@@ -3,6 +3,7 @@ import { generateQRCode } from '../../utils/qrCode';
 import { quizArenaService } from '../../services/quizArenaService';
 import { geminiService } from '../../services/geminiService';
 import ApiKeyModal from '../ai/ApiKeyModal';
+import QuizReportModal from './QuizReportModal';
 import MathText from '../ui/MathText';
 import { API_BASE } from '../../config';
 
@@ -74,10 +75,12 @@ export default function QuizArenaTool({ addNotification }) {
   // AI Generator Modal & API Key Settings
   const [showAiModal, setShowAiModal] = useState(false);
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [showReportModal, setShowReportModal] = useState(false);
   const [hasApiKey, setHasApiKey] = useState(() => geminiService.hasApiKey());
   const [aiTopic, setAiTopic] = useState('');
   const [aiQuestionCount, setAiQuestionCount] = useState(3);
   const [aiSubject, setAiSubject] = useState('Matematika');
+  const [aiQuestionTypes, setAiQuestionTypes] = useState(['multiple-choice', 'true-false', 'numeric']);
   const [isGenerating, setIsGenerating] = useState(false);
 
   // AI Document-based generation state
@@ -308,6 +311,7 @@ export default function QuizArenaTool({ addNotification }) {
         topic: aiTopic.trim(),
         questionCount: aiQuestionCount,
         subject: aiSubject,
+        questionTypes: aiQuestionTypes,
         sourceMode: aiSourceMode,
         documentText: effectiveDocText,
         documentFile: effectiveDocFile
@@ -460,6 +464,28 @@ export default function QuizArenaTool({ addNotification }) {
               }}
             >
               🎮 Élő Játékmenet {activeSession.playersCount > 0 && `(${activeSession.playersCount} diák)`}
+            </button>
+          )}
+
+          {activeSession && (
+            <button
+              onClick={() => setShowReportModal(true)}
+              style={{
+                padding: '6px 14px',
+                borderRadius: '6px',
+                border: '1.5px solid #8b5cf6',
+                background: 'rgba(139, 92, 246, 0.1)',
+                color: '#8b5cf6',
+                fontWeight: 700,
+                fontSize: '12px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              <span>📊</span>
+              <span>Riport & Export</span>
             </button>
           )}
 
@@ -754,10 +780,102 @@ export default function QuizArenaTool({ addNotification }) {
                     padding: '18px'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                    <span style={{ fontWeight: 800, fontSize: '14px', color: '#1368ce' }}>
-                      {qIdx + 1}. Kérdés
-                    </span>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', flexWrap: 'wrap', gap: '8px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ fontWeight: 800, fontSize: '14px', color: '#1368ce' }}>
+                        {qIdx + 1}. Kérdés
+                      </span>
+
+                      {/* Kérdéstípus választó */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: 'var(--panel-bg)', padding: '2px', borderRadius: '8px', border: '1px solid var(--panel-border)' }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...editingQuiz.questions];
+                            updated[qIdx] = {
+                              ...updated[qIdx],
+                              type: 'multiple-choice',
+                              correctOptionId: updated[qIdx].correctOptionId || 'opt-1',
+                              options: (updated[qIdx].options?.length >= 4 ? updated[qIdx].options : [
+                                { id: 'opt-1', text: '1. opció', color: ARENA_COLORS[0], shape: ARENA_SHAPES[0] },
+                                { id: 'opt-2', text: '2. opció', color: ARENA_COLORS[1], shape: ARENA_SHAPES[1] },
+                                { id: 'opt-3', text: '3. opció', color: ARENA_COLORS[2], shape: ARENA_SHAPES[2] },
+                                { id: 'opt-4', text: '4. opció', color: ARENA_COLORS[3], shape: ARENA_SHAPES[3] }
+                              ])
+                            };
+                            setEditingQuiz({ ...editingQuiz, questions: updated });
+                          }}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: (!q.type || q.type === 'multiple-choice') ? '#1368ce' : 'transparent',
+                            color: (!q.type || q.type === 'multiple-choice') ? '#fff' : 'var(--text-secondary)',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          🔠 4-válaszos
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...editingQuiz.questions];
+                            updated[qIdx] = {
+                              ...updated[qIdx],
+                              type: 'true-false',
+                              correctOptionId: (updated[qIdx].correctOptionId === 'opt-false' ? 'opt-false' : 'opt-true'),
+                              options: [
+                                { id: 'opt-true', text: 'Igaz', color: '#26890c', shape: '✓' },
+                                { id: 'opt-false', text: 'Hamis', color: '#e21b3c', shape: '✗' }
+                              ]
+                            };
+                            setEditingQuiz({ ...editingQuiz, questions: updated });
+                          }}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: q.type === 'true-false' ? '#26890c' : 'transparent',
+                            color: q.type === 'true-false' ? '#fff' : 'var(--text-secondary)',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          ⚖️ Igaz / Hamis
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const updated = [...editingQuiz.questions];
+                            updated[qIdx] = {
+                              ...updated[qIdx],
+                              type: 'numeric',
+                              correctAnswer: updated[qIdx].correctAnswer ?? 0,
+                              tolerance: updated[qIdx].tolerance ?? 0,
+                              unit: updated[qIdx].unit ?? '',
+                              options: []
+                            };
+                            setEditingQuiz({ ...editingQuiz, questions: updated });
+                          }}
+                          style={{
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            border: 'none',
+                            background: q.type === 'numeric' ? '#ffa602' : 'transparent',
+                            color: q.type === 'numeric' ? '#000' : 'var(--text-secondary)',
+                            fontSize: '11px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          🔢 Számolásos
+                        </button>
+                      </div>
+                    </div>
+
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <label style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>Időkorlát:</label>
                       <select
@@ -833,94 +951,269 @@ export default function QuizArenaTool({ addNotification }) {
                     )}
                   </div>
 
-                  {/* 4 Options Grid - Bővíthető, kényelmesen kiférő válaszmezők LaTeX előnézettel */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-                    {q.options.map((opt, oIdx) => {
-                      const isCorrect = (q.correctOptionId === opt.id);
-                      return (
-                        <div
-                          key={opt.id || oIdx}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'flex-start',
-                            gap: '10px',
-                            padding: '10px 12px',
-                            borderRadius: '10px',
-                            background: 'var(--panel-bg)',
-                            border: isCorrect ? '2px solid #26890c' : '1px solid var(--panel-border)',
-                            boxShadow: isCorrect ? '0 2px 8px rgba(38, 137, 12, 0.15)' : 'none'
-                          }}
-                        >
-                          <span style={{ fontSize: '20px', color: opt.color || ARENA_COLORS[oIdx], marginTop: '2px', flexShrink: 0 }}>
-                            {opt.shape || ARENA_SHAPES[oIdx]}
-                          </span>
-                          <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            <textarea
-                              rows={2}
-                              required
-                              value={opt.text}
-                              onChange={(e) => {
-                                const updated = [...editingQuiz.questions];
-                                updated[qIdx].options[oIdx].text = e.target.value;
-                                setEditingQuiz({ ...editingQuiz, questions: updated });
-                              }}
-                              placeholder="Válasz szövege ($...$)..."
-                              style={{
-                                width: '100%',
-                                border: 'none',
-                                background: 'transparent',
-                                color: 'var(--text-primary)',
-                                fontSize: '13px',
-                                fontWeight: 600,
-                                outline: 'none',
-                                resize: 'none',
-                                lineHeight: 1.35,
-                                fontFamily: 'inherit',
-                                wordBreak: 'break-word',
-                                padding: 0
-                              }}
-                            />
-                            {/[\$\\_\^]/.test(opt.text || '') && (
-                              <div style={{
-                                fontSize: '12px',
-                                color: '#3b82f6',
-                                background: 'rgba(59, 130, 246, 0.08)',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                wordBreak: 'break-word',
-                                overflowWrap: 'anywhere'
-                              }}>
-                                <MathText text={opt.text} />
-                              </div>
-                            )}
+                  {/* Kérdéstípusnak megfelelő válasz-szerkesztő felület */}
+                  {q.type === 'true-false' ? (
+                    /* A) IGAZ / HAMIS VÁLASZTÓ */
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div
+                        onClick={() => {
+                          const updated = [...editingQuiz.questions];
+                          updated[qIdx].correctOptionId = 'opt-true';
+                          setEditingQuiz({ ...editingQuiz, questions: updated });
+                        }}
+                        style={{
+                          padding: '14px 18px',
+                          borderRadius: '10px',
+                          background: 'var(--panel-bg)',
+                          border: q.correctOptionId === 'opt-true' ? '2px solid #26890c' : '1px solid var(--panel-border)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          boxShadow: q.correctOptionId === 'opt-true' ? '0 2px 10px rgba(38,137,12,0.2)' : 'none',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '24px', color: '#26890c', fontWeight: 900 }}>✓</span>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '15px' }}>IGAZ állítás</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>A diákoknak az IGAZ gombot kell választaniuk</div>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated = [...editingQuiz.questions];
-                              updated[qIdx].correctOptionId = opt.id;
-                              setEditingQuiz({ ...editingQuiz, questions: updated });
-                            }}
+                        </div>
+                        <span style={{
+                          padding: '5px 12px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          background: q.correctOptionId === 'opt-true' ? '#26890c' : 'var(--hover-bg, rgba(0,0,0,0.06))',
+                          color: q.correctOptionId === 'opt-true' ? '#fff' : 'var(--text-secondary)'
+                        }}>
+                          {q.correctOptionId === 'opt-true' ? '✓ Helyes megoldás' : 'Kijelölés'}
+                        </span>
+                      </div>
+
+                      <div
+                        onClick={() => {
+                          const updated = [...editingQuiz.questions];
+                          updated[qIdx].correctOptionId = 'opt-false';
+                          setEditingQuiz({ ...editingQuiz, questions: updated });
+                        }}
+                        style={{
+                          padding: '14px 18px',
+                          borderRadius: '10px',
+                          background: 'var(--panel-bg)',
+                          border: q.correctOptionId === 'opt-false' ? '2px solid #e21b3c' : '1px solid var(--panel-border)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          boxShadow: q.correctOptionId === 'opt-false' ? '0 2px 10px rgba(226,27,60,0.2)' : 'none',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span style={{ fontSize: '24px', color: '#e21b3c', fontWeight: 900 }}>✗</span>
+                          <div>
+                            <div style={{ fontWeight: 800, fontSize: '15px' }}>HAMIS állítás</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>A diákoknak a HAMIS gombot kell választaniuk</div>
+                          </div>
+                        </div>
+                        <span style={{
+                          padding: '5px 12px',
+                          borderRadius: '6px',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          background: q.correctOptionId === 'opt-false' ? '#e21b3c' : 'var(--hover-bg, rgba(0,0,0,0.06))',
+                          color: q.correctOptionId === 'opt-false' ? '#fff' : 'var(--text-secondary)'
+                        }}>
+                          {q.correctOptionId === 'opt-false' ? '✓ Helyes megoldás' : 'Kijelölés'}
+                        </span>
+                      </div>
+                    </div>
+                  ) : q.type === 'numeric' ? (
+                    /* B) NUMERIKUS / SZÁMOLÁSOS BEÁLLÍTÁS */
+                    <div style={{
+                      background: 'var(--panel-bg)',
+                      border: '1px solid var(--panel-border)',
+                      borderRadius: '10px',
+                      padding: '16px',
+                      display: 'grid',
+                      gridTemplateColumns: '1.2fr 1fr 1fr',
+                      gap: '14px',
+                      alignItems: 'center'
+                    }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px', color: '#1368ce' }}>
+                          🎯 Helyes számérték:
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          required
+                          value={q.correctAnswer ?? 0}
+                          onChange={(e) => {
+                            const updated = [...editingQuiz.questions];
+                            updated[qIdx].correctAnswer = parseFloat(e.target.value) || 0;
+                            setEditingQuiz({ ...editingQuiz, questions: updated });
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            border: '1.5px solid #1368ce',
+                            background: 'var(--panel-bg)',
+                            color: 'var(--text-primary)',
+                            fontWeight: 800,
+                            fontSize: '15px'
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
+                          📏 Megengedett tolerancia (± eltérés):
+                        </label>
+                        <input
+                          type="number"
+                          step="any"
+                          min="0"
+                          value={q.tolerance ?? 0}
+                          onChange={(e) => {
+                            const updated = [...editingQuiz.questions];
+                            updated[qIdx].tolerance = parseFloat(e.target.value) || 0;
+                            setEditingQuiz({ ...editingQuiz, questions: updated });
+                          }}
+                          placeholder="0 (pontos érték)"
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--panel-border)',
+                            background: 'var(--panel-bg)',
+                            color: 'var(--text-primary)',
+                            fontWeight: 600,
+                            fontSize: '14px'
+                          }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 700, marginBottom: '6px' }}>
+                          🏷️ Mértékegység felirat (opcionális):
+                        </label>
+                        <input
+                          type="text"
+                          value={q.unit || ''}
+                          onChange={(e) => {
+                            const updated = [...editingQuiz.questions];
+                            updated[qIdx].unit = e.target.value;
+                            setEditingQuiz({ ...editingQuiz, questions: updated });
+                          }}
+                          placeholder="pl. cm², m/s, kg, %"
+                          style={{
+                            width: '100%',
+                            padding: '8px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--panel-border)',
+                            background: 'var(--panel-bg)',
+                            color: 'var(--text-primary)',
+                            fontWeight: 600,
+                            fontSize: '14px'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    /* C) 4 FELELETVÁLASZTÓS OPCIÓ */
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
+                      {(q.options || []).map((opt, oIdx) => {
+                        const isCorrect = (q.correctOptionId === opt.id);
+                        return (
+                          <div
+                            key={opt.id || oIdx}
                             style={{
-                              padding: '5px 9px',
-                              borderRadius: '6px',
-                              border: 'none',
-                              background: isCorrect ? '#26890c' : 'var(--hover-bg, rgba(0,0,0,0.06))',
-                              color: isCorrect ? '#fff' : 'var(--text-secondary)',
-                              fontSize: '11px',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              whiteSpace: 'nowrap',
-                              flexShrink: 0,
-                              alignSelf: 'center'
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: '10px',
+                              padding: '10px 12px',
+                              borderRadius: '10px',
+                              background: 'var(--panel-bg)',
+                              border: isCorrect ? '2px solid #26890c' : '1px solid var(--panel-border)',
+                              boxShadow: isCorrect ? '0 2px 8px rgba(38, 137, 12, 0.15)' : 'none'
                             }}
                           >
-                            {isCorrect ? '✓ Helyes' : 'Helyes?'}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
+                            <span style={{ fontSize: '20px', color: opt.color || ARENA_COLORS[oIdx], marginTop: '2px', flexShrink: 0 }}>
+                              {opt.shape || ARENA_SHAPES[oIdx]}
+                            </span>
+                            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              <textarea
+                                rows={2}
+                                required
+                                value={opt.text}
+                                onChange={(e) => {
+                                  const updated = [...editingQuiz.questions];
+                                  updated[qIdx].options[oIdx].text = e.target.value;
+                                  setEditingQuiz({ ...editingQuiz, questions: updated });
+                                }}
+                                placeholder="Válasz szövege ($...$)..."
+                                style={{
+                                  width: '100%',
+                                  border: 'none',
+                                  background: 'transparent',
+                                  color: 'var(--text-primary)',
+                                  fontSize: '13px',
+                                  fontWeight: 600,
+                                  outline: 'none',
+                                  resize: 'none',
+                                  lineHeight: 1.35,
+                                  fontFamily: 'inherit',
+                                  wordBreak: 'break-word',
+                                  padding: 0
+                                }}
+                              />
+                              {/[\$\\_\^]/.test(opt.text || '') && (
+                                <div style={{
+                                  fontSize: '12px',
+                                  color: '#3b82f6',
+                                  background: 'rgba(59, 130, 246, 0.08)',
+                                  padding: '2px 6px',
+                                  borderRadius: '4px',
+                                  wordBreak: 'break-word',
+                                  overflowWrap: 'anywhere'
+                                }}>
+                                  <MathText text={opt.text} />
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...editingQuiz.questions];
+                                updated[qIdx].correctOptionId = opt.id;
+                                setEditingQuiz({ ...editingQuiz, questions: updated });
+                              }}
+                              style={{
+                                padding: '5px 9px',
+                                borderRadius: '6px',
+                                border: 'none',
+                                background: isCorrect ? '#26890c' : 'var(--hover-bg, rgba(0,0,0,0.06))',
+                                color: isCorrect ? '#fff' : 'var(--text-secondary)',
+                                fontSize: '11px',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                whiteSpace: 'nowrap',
+                                flexShrink: 0,
+                                alignSelf: 'center'
+                              }}
+                            >
+                              {isCorrect ? '✓ Helyes' : 'Helyes?'}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
 
@@ -1138,36 +1431,95 @@ export default function QuizArenaTool({ addNotification }) {
                 <MathText text={currentQ?.question} />
               </div>
 
-              {/* 4 Colored Blocks - Automatikusan skálázódó méret, hogy minden kényelmesen elférjen */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', flex: 1, minHeight: '220px' }}>
-                {(currentQ?.options || []).map((opt) => {
-                  const len = opt.text?.length || 0;
-                  const fontSize = len > 75 ? '15px' : len > 40 ? '17px' : '19px';
-                  return (
-                    <div
-                      key={opt.id}
-                      style={{
-                        background: opt.color || '#1368ce',
-                        color: '#ffffff',
-                        borderRadius: '16px',
-                        padding: '18px 22px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '14px',
-                        boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
-                        minHeight: '96px',
-                        wordBreak: 'break-word',
-                        overflowWrap: 'anywhere'
-                      }}
-                    >
-                      <span style={{ fontSize: '32px', fontWeight: 900, flexShrink: 0 }}>{opt.shape}</span>
-                      <span style={{ fontSize, fontWeight: 700, lineHeight: 1.3, flex: 1 }}>
-                        <MathText text={opt.text} />
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+              {/* Kérdés blokkok / interakció a kérdéstípustól függően */}
+              {currentQ?.type === 'true-false' ? (
+                /* A) IGAZ / HAMIS ÉLŐ KIJELZŐ */
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', flex: 1, minHeight: '200px' }}>
+                  <div style={{
+                    background: '#26890c',
+                    color: '#ffffff',
+                    borderRadius: '20px',
+                    padding: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '16px',
+                    boxShadow: '0 8px 24px rgba(38, 137, 12, 0.3)'
+                  }}>
+                    <span style={{ fontSize: '48px', fontWeight: 900 }}>✓</span>
+                    <span style={{ fontSize: '32px', fontWeight: 900, letterSpacing: '2px' }}>IGAZ</span>
+                  </div>
+
+                  <div style={{
+                    background: '#e21b3c',
+                    color: '#ffffff',
+                    borderRadius: '20px',
+                    padding: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '16px',
+                    boxShadow: '0 8px 24px rgba(226, 27, 60, 0.3)'
+                  }}>
+                    <span style={{ fontSize: '48px', fontWeight: 900 }}>✗</span>
+                    <span style={{ fontSize: '32px', fontWeight: 900, letterSpacing: '2px' }}>HAMIS</span>
+                  </div>
+                </div>
+              ) : currentQ?.type === 'numeric' ? (
+                /* B) NUMERIKUS / SZÁMÍTÁSOS ÉLŐ KIJELZŐ */
+                <div style={{
+                  background: 'linear-gradient(135deg, rgba(255,166,2,0.12), rgba(19,104,206,0.08))',
+                  border: '2px dashed #ffa602',
+                  borderRadius: '20px',
+                  padding: '36px 24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  flex: 1,
+                  minHeight: '200px'
+                }}>
+                  <div style={{ fontSize: '52px', marginBottom: '12px' }}>🔢 ⌨️</div>
+                  <h3 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: 900 }}>
+                    Számításos / Numerikus Feladat
+                  </h3>
+                  <p style={{ margin: 0, fontSize: '16px', color: 'var(--text-secondary)' }}>
+                    A diákok közvetlenül a telefonjukon gépelik be a pontos számértéket {currentQ?.unit ? `(${currentQ.unit})` : ''}!
+                  </p>
+                </div>
+              ) : (
+                /* C) 4 SZÍNES BLOKK (FELELETVÁLASZTÓ) */
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', flex: 1, minHeight: '220px' }}>
+                  {(currentQ?.options || []).map((opt) => {
+                    const len = opt.text?.length || 0;
+                    const fontSize = len > 75 ? '15px' : len > 40 ? '17px' : '19px';
+                    return (
+                      <div
+                        key={opt.id}
+                        style={{
+                          background: opt.color || '#1368ce',
+                          color: '#ffffff',
+                          borderRadius: '16px',
+                          padding: '18px 22px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '14px',
+                          boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+                          minHeight: '96px',
+                          wordBreak: 'break-word',
+                          overflowWrap: 'anywhere'
+                        }}
+                      >
+                        <span style={{ fontSize: '32px', fontWeight: 900, flexShrink: 0 }}>{opt.shape}</span>
+                        <span style={{ fontSize, fontWeight: 700, lineHeight: 1.3, flex: 1 }}>
+                          <MathText text={opt.text} />
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               {/* Teacher action bar */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
@@ -1202,49 +1554,134 @@ export default function QuizArenaTool({ addNotification }) {
                 </h3>
               </div>
 
-              {/* 4 Colored Blocks with Correct Answer Highlighted */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', flex: 1, minHeight: '220px' }}>
-                {(currentQ?.options || []).map((opt) => {
-                  const isCorrect = (opt.id === currentQ.correctOptionId);
-                  const len = opt.text?.length || 0;
-                  const fontSize = len > 75 ? '15px' : len > 40 ? '17px' : '19px';
-                  return (
-                    <div
-                      key={opt.id}
-                      style={{
-                        background: opt.color || '#1368ce',
-                        color: '#ffffff',
-                        borderRadius: '16px',
-                        padding: '18px 22px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        gap: '12px',
-                        opacity: isCorrect ? 1 : 0.35,
-                        transform: isCorrect ? 'scale(1.02)' : 'none',
-                        border: isCorrect ? '4px solid #ffffff' : 'none',
-                        boxShadow: isCorrect ? '0 12px 32px rgba(38, 137, 12, 0.4)' : 'none',
-                        transition: 'all 0.3s ease',
-                        minHeight: '96px',
-                        wordBreak: 'break-word',
-                        overflowWrap: 'anywhere'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1 }}>
-                        <span style={{ fontSize: '32px', fontWeight: 900, flexShrink: 0 }}>{opt.shape}</span>
-                        <span style={{ fontSize, fontWeight: 700, lineHeight: 1.3, flex: 1 }}>
-                          <MathText text={opt.text} />
-                        </span>
-                      </div>
-                      {isCorrect && (
-                        <span style={{ fontSize: '28px', background: 'rgba(255,255,255,0.3)', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          ✓
-                        </span>
-                      )}
+              {/* Megoldás megjelenítése kérdéstípus szerint */}
+              {currentQ?.type === 'true-false' ? (
+                /* A) IGAZ / HAMIS MEGOLDÁS KIJELZÉSE */
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', flex: 1, minHeight: '200px' }}>
+                  <div style={{
+                    background: '#26890c',
+                    color: '#ffffff',
+                    borderRadius: '20px',
+                    padding: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '16px',
+                    fontSize: '28px',
+                    fontWeight: 900,
+                    opacity: currentQ.correctOptionId === 'opt-true' ? 1 : 0.3,
+                    border: currentQ.correctOptionId === 'opt-true' ? '4px solid #ffffff' : 'none',
+                    boxShadow: currentQ.correctOptionId === 'opt-true' ? '0 12px 32px rgba(38,137,12,0.4)' : 'none',
+                    transform: currentQ.correctOptionId === 'opt-true' ? 'scale(1.03)' : 'none',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    <span style={{ fontSize: '48px' }}>✓</span>
+                    <span style={{ letterSpacing: '2px' }}>IGAZ</span>
+                    {currentQ.correctOptionId === 'opt-true' && (
+                      <span style={{ fontSize: '24px', background: 'rgba(255,255,255,0.3)', width: '44px', height: '44px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        ✓
+                      </span>
+                    )}
+                  </div>
+
+                  <div style={{
+                    background: '#e21b3c',
+                    color: '#ffffff',
+                    borderRadius: '20px',
+                    padding: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '16px',
+                    fontSize: '28px',
+                    fontWeight: 900,
+                    opacity: currentQ.correctOptionId === 'opt-false' ? 1 : 0.3,
+                    border: currentQ.correctOptionId === 'opt-false' ? '4px solid #ffffff' : 'none',
+                    boxShadow: currentQ.correctOptionId === 'opt-false' ? '0 12px 32px rgba(226,27,60,0.4)' : 'none',
+                    transform: currentQ.correctOptionId === 'opt-false' ? 'scale(1.03)' : 'none',
+                    transition: 'all 0.3s ease'
+                  }}>
+                    <span style={{ fontSize: '48px' }}>✗</span>
+                    <span style={{ letterSpacing: '2px' }}>HAMIS</span>
+                    {currentQ.correctOptionId === 'opt-false' && (
+                      <span style={{ fontSize: '24px', background: 'rgba(255,255,255,0.3)', width: '44px', height: '44px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        ✓
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ) : currentQ?.type === 'numeric' ? (
+                /* B) NUMERIKUS / SZÁMÍTÁSOS MEGOLDÁS KIJELZÉSE */
+                <div style={{
+                  background: 'rgba(38, 137, 12, 0.1)',
+                  border: '3px solid #26890c',
+                  borderRadius: '20px',
+                  padding: '36px 24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  textAlign: 'center',
+                  flex: 1,
+                  minHeight: '200px'
+                }}>
+                  <div style={{ fontSize: '16px', fontWeight: 800, color: '#26890c', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '6px' }}>
+                    ✓ HELYES MEGOLDÁS
+                  </div>
+                  <div style={{ fontSize: '52px', fontWeight: 900, color: '#26890c', margin: '6px 0 12px' }}>
+                    {currentQ.correctAnswer} {currentQ.unit || ''}
+                  </div>
+                  {Number(currentQ.tolerance) > 0 && (
+                    <div style={{ fontSize: '15px', color: 'var(--text-secondary)', fontWeight: 600 }}>
+                      Elfogadott intervallum: <strong>[{currentQ.correctAnswer - currentQ.tolerance} ... {currentQ.correctAnswer + currentQ.tolerance}]</strong> (±{currentQ.tolerance} {currentQ.unit || ''})
                     </div>
-                  );
-                })}
-              </div>
+                  )}
+                </div>
+              ) : (
+                /* C) 4 SZÍNES BLOKK KIEMELT MEGOLDÁSSAL */
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', flex: 1, minHeight: '220px' }}>
+                  {(currentQ?.options || []).map((opt) => {
+                    const isCorrect = (opt.id === currentQ.correctOptionId);
+                    const len = opt.text?.length || 0;
+                    const fontSize = len > 75 ? '15px' : len > 40 ? '17px' : '19px';
+                    return (
+                      <div
+                        key={opt.id}
+                        style={{
+                          background: opt.color || '#1368ce',
+                          color: '#ffffff',
+                          borderRadius: '16px',
+                          padding: '18px 22px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          gap: '12px',
+                          opacity: isCorrect ? 1 : 0.35,
+                          transform: isCorrect ? 'scale(1.02)' : 'none',
+                          border: isCorrect ? '4px solid #ffffff' : 'none',
+                          boxShadow: isCorrect ? '0 12px 32px rgba(38, 137, 12, 0.4)' : 'none',
+                          transition: 'all 0.3s ease',
+                          minHeight: '96px',
+                          wordBreak: 'break-word',
+                          overflowWrap: 'anywhere'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flex: 1 }}>
+                          <span style={{ fontSize: '32px', fontWeight: 900, flexShrink: 0 }}>{opt.shape}</span>
+                          <span style={{ fontSize, fontWeight: 700, lineHeight: 1.3, flex: 1 }}>
+                            <MathText text={opt.text} />
+                          </span>
+                        </div>
+                        {isCorrect && (
+                          <span style={{ fontSize: '28px', background: 'rgba(255,255,255,0.3)', width: '48px', height: '48px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            ✓
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
                 <button
@@ -1398,7 +1835,27 @@ export default function QuizArenaTool({ addNotification }) {
                   )}
                 </div>
 
-                <div style={{ display: 'flex', justifyContent: 'center', gap: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
+                  <button
+                    onClick={() => setShowReportModal(true)}
+                    style={{
+                      padding: '12px 28px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: 'linear-gradient(135deg, #1368ce, #46178f)',
+                      color: '#fff',
+                      fontWeight: 800,
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 16px rgba(19, 104, 206, 0.4)'
+                    }}
+                  >
+                    <span>📊</span>
+                    <span>Részletes Elemző Riport & Export</span>
+                  </button>
                   <button
                     onClick={handleResetGame}
                     style={{
@@ -1856,6 +2313,112 @@ export default function QuizArenaTool({ addNotification }) {
                 </div>
               </div>
 
+              {/* Kérdéstípusok bejelölése (Többválasztós jelölőnégyzetek) */}
+              <div style={{ marginTop: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                    Kérdéstípusok bejelölése (válaszd ki a kívánt típusokat):
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setAiQuestionTypes(['multiple-choice', 'true-false', 'numeric'])}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#1368ce',
+                      fontSize: '11px',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      padding: 0
+                    }}
+                  >
+                    Mindhárom kijelölése
+                  </button>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                  {[
+                    {
+                      id: 'multiple-choice',
+                      title: '4-válaszos',
+                      subtitle: 'Klasszikus A, B, C, D',
+                      icon: '🔠',
+                      color: '#1368ce'
+                    },
+                    {
+                      id: 'true-false',
+                      title: 'Igaz / Hamis',
+                      subtitle: '2 gombos eldöntendő',
+                      icon: '⚖️',
+                      color: '#26890c'
+                    },
+                    {
+                      id: 'numeric',
+                      title: 'Számolásos',
+                      subtitle: 'Diák által beírt szám',
+                      icon: '🔢',
+                      color: '#ffa602'
+                    }
+                  ].map(item => {
+                    const isSelected = aiQuestionTypes.includes(item.id);
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setAiQuestionTypes(prev => {
+                            const list = Array.isArray(prev) ? prev : ['multiple-choice', 'true-false', 'numeric'];
+                            if (list.includes(item.id)) {
+                              if (list.length === 1) return list; // Legalább 1 típus maradjon kijelölve
+                              return list.filter(t => t !== item.id);
+                            } else {
+                              return [...list, item.id];
+                            }
+                          });
+                        }}
+                        style={{
+                          padding: '12px 14px',
+                          borderRadius: '12px',
+                          border: isSelected ? `2px solid ${item.color}` : '1.5px solid var(--panel-border)',
+                          background: isSelected ? `${item.color}15` : 'var(--panel-bg)',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          transition: 'all 0.15s ease',
+                          userSelect: 'none',
+                          boxShadow: isSelected ? `0 2px 10px ${item.color}25` : 'none'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span style={{ fontSize: '22px' }}>{item.icon}</span>
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '6px',
+                            border: isSelected ? `2px solid ${item.color}` : '1.5px solid var(--panel-border)',
+                            background: isSelected ? item.color : 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#fff',
+                            fontSize: '13px',
+                            fontWeight: 900
+                          }}>
+                            {isSelected ? '✓' : ''}
+                          </div>
+                        </div>
+                        <div style={{ fontWeight: 800, fontSize: '13px', color: isSelected ? (item.color === '#ffa602' ? 'var(--text-primary)' : item.color) : 'var(--text-primary)', marginTop: '2px' }}>
+                          {item.title}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', lineHeight: 1.25 }}>
+                          {item.subtitle}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Gombok */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                 <button
@@ -1921,6 +2484,18 @@ export default function QuizArenaTool({ addNotification }) {
         addNotification={addNotification}
         title="Google Gemini API Kulcs Beállítása"
         subtitle="Az intelligens AI Kvíz funkcióhoz szükséges"
+      />
+
+      {/* ========================================================
+          6. TANÁRI ELEMZŐ RIPORT & TÍPUSHIBÁK MODAL
+         ======================================================== */}
+      <QuizReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        quiz={activeSession?.quiz || editingQuiz}
+        players={activeSession?.players || []}
+        answersHistory={activeSession?.answersHistory || {}}
+        addNotification={addNotification}
       />
     </div>
   );

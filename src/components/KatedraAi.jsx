@@ -7,6 +7,7 @@ export default function KatedraAi({ addNotification, setActiveTab }) {
   
   // API Kulcs állapota
   const [apiKey, setApiKey] = useState('');
+  const [showKey, setShowKey] = useState(false);
   const [hasKey, setHasKey] = useState(false);
   const [isTestingKey, setIsTestingKey] = useState(false);
   const [keyStatusMsg, setKeyStatusMsg] = useState(null);
@@ -1079,7 +1080,15 @@ export default function KatedraAi({ addNotification, setActiveTab }) {
               </label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
-                  type="password"
+                  type="text"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  spellCheck="false"
+                  name="gemini_api_key_schola"
+                  data-lpignore="true"
+                  data-1p-ignore="true"
+                  data-form-type="other"
                   value={apiKey}
                   onChange={(e) => setApiKey(e.target.value)}
                   placeholder="AIzaSy..."
@@ -1089,9 +1098,18 @@ export default function KatedraAi({ addNotification, setActiveTab }) {
                     padding: '8px 12px',
                     borderRadius: '4px',
                     fontSize: '13px',
-                    fontFamily: 'monospace'
+                    fontFamily: 'monospace',
+                    WebkitTextSecurity: showKey ? 'none' : 'disc'
                   }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowKey(!showKey)}
+                  className="btn-outline"
+                  style={{ padding: '8px 12px', fontSize: '12px', borderRadius: '4px' }}
+                >
+                  {showKey ? 'Elrejtés' : 'Mutatás'}
+                </button>
                 <button
                   type="button"
                   onClick={handleSaveApiKey}
