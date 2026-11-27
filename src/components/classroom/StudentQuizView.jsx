@@ -24,19 +24,97 @@ export default function StudentQuizView() {
   const [numericInput, setNumericInput] = useState('');
 
   const prevQuestionIndex = useRef(-1);
+  const playerIdRef = useRef(playerId);
+  const playerNameRef = useRef(playerName);
+  const hasJoinedRef = useRef(hasJoined);
+  const hasAnsweredRef = useRef(hasAnswered);
+  const joinedSessionIdRef = useRef(localStorage.getItem('schola_quiz_session_id') || '');
+  const missingPollsRef = useRef(0);
+  const inFlightRef = useRef(false);
 
-  // Poll state every 1.5s
+  useEffect(() => { playerIdRef.current = playerId; }, [playerId]);
+  useEffect(() => { playerNameRef.current = playerName; }, [playerName]);
+  useEffect(() => { hasJoinedRef.current = hasJoined; }, [hasJoined]);
+  useEffect(() => { hasAnsweredRef.current = hasAnswered; }, [hasAnswered]);
+
+  // Poll state every 1.5s (stabil, nem indul újra gépelés közben!)
   useEffect(() => {
-    let interval = null;
+    let cancelled = false;
 
     const checkState = async () => {
-      const state = await quizArenaService.getState('student');
-      if (state && state.id) {
+      if (inFlightRef.current) return;
+      inFlightRef.current = true;
+      try {
+        const state = await quizArenaService.getState('student');
+        if (cancelled || !state || !state.id) return;
+
         setSession(state);
 
         // Ha a diák még nem lépett be és nincs beírva PIN, automatikusan kitöltjük az aktív játék PIN-jét (pl. állandó QR kód esetén)
-        if (!hasJoined && state.pin) {
+        if (!hasJoinedRef.current && state.pin) {
           setPinInput(prev => (prev && prev.trim().length > 0) ? prev : state.pin);
+        }
+
+        const currentPid = playerIdRef.current;
+        const currentName = (playerNameRef.current || '').trim().toLowerCase();
+        const me = Array.isArray(state.players)
+          ? state.players.find(p =>
+              (currentPid && p.id === currentPid) ||
+              (currentName && p.name.trim().toLowerCase() === currentName)
+            )
+          : null;
+
+        // Ha a tanár új kvízt indított (megváltozott a session ID), engedjük újra belépni tisztán
+        if (hasJoinedRef.current && joinedSessionIdRef.current && state.id !== joinedSessionIdRef.current) {
+          hasJoinedRef.current = false;
+          setHasJoined(false);
+          setHasAnswered(false);
+          setAnswerResult(null);
+          prevQuestionIndex.current = -1;
+          joinedSessionIdRef.current = '';
+          localStorage.removeItem('schola_quiz_session_id');
+          if (state.pin) setPinInput(state.pin);
+          setJoinError('Új kvíz indult a táblán! Kattints a Belépés gombra.');
+          return;
+        }
+
+        if (hasJoinedRef.current) {
+          if (me) {
+            missingPollsRef.current = 0;
+            if (me.id !== currentPid) {
+              setPlayerId(me.id);
+              localStorage.setItem('schola_quiz_player_id', me.id);
+            }
+            if (me.answered && !hasAnsweredRef.current) {
+              setHasAnswered(true);
+            }
+          } else {
+            missingPollsRef.current += 1;
+            // Csak 2 egymást követő hiányzó lekérdezés után lép ki (kiszűri az egyszeri hálózati döccenést)
+            if (missingPollsRef.current >= 2) {
+              hasJoinedRef.current = false;
+              setHasJoined(false);
+              setHasAnswered(false);
+              setAnswerResult(null);
+              prevQuestionIndex.current = -1;
+              missingPollsRef.current = 0;
+              if (state.pin) setPinInput(state.pin);
+              setJoinError('A kapcsolat megszakadt vagy a lista frissült. Kérlek lépj be újra!');
+              return;
+            }
+          }
+        } else if (me && joinedSessionIdRef.current === state.id) {
+          // Oldalfrissítés után automatikus visszalépés ugyanabba az élő meccsbe
+          missingPollsRef.current = 0;
+          hasJoinedRef.current = true;
+          setHasJoined(true);
+          if (me.id !== currentPid) {
+            setPlayerId(me.id);
+            localStorage.setItem('schola_quiz_player_id', me.id);
+          }
+          if (me.answered && !hasAnsweredRef.current) {
+            setHasAnswered(true);
+          }
         }
 
         // Ha új kérdés indult
@@ -44,29 +122,25 @@ export default function StudentQuizView() {
           prevQuestionIndex.current = state.currentQuestionIndex;
           setSelectedOptionId(null);
           setNumericInput('');
-          setHasAnswered(false);
+          setHasAnswered(Boolean(me?.answered));
           setAnswerResult(null);
           setQuestionStartTime(Date.now());
           setTimeLeft(state.timeLimit || 20);
+        } else if (state.status === 'lobby') {
+          prevQuestionIndex.current = -1;
         }
-
-        // Ha a játékos már benne van
-        if (playerId && state.players) {
-          const me = state.players.find(p => p.id === playerId || p.name.toLowerCase() === playerName.toLowerCase());
-          if (me) {
-            setHasJoined(true);
-            if (me.answered && !hasAnswered) {
-              setHasAnswered(true);
-            }
-          }
-        }
+      } finally {
+        inFlightRef.current = false;
       }
     };
 
     checkState();
-    interval = setInterval(checkState, 1500);
-    return () => clearInterval(interval);
-  }, [playerId, playerName, hasAnswered]);
+    const interval = setInterval(checkState, 1500);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
 
   // Countdown timer during question
   useEffect(() => {
@@ -93,9 +167,22 @@ export default function StudentQuizView() {
       });
 
       if (res && res.success) {
+        const joinedSid = res.sessionId || res.session?.id || session?.id || '';
         setPlayerId(res.playerId);
+        playerIdRef.current = res.playerId;
+        playerNameRef.current = playerName.trim();
+        joinedSessionIdRef.current = joinedSid;
+        missingPollsRef.current = 0;
+
         localStorage.setItem('schola_quiz_player_id', res.playerId);
         localStorage.setItem('schola_quiz_player_name', playerName.trim());
+        if (joinedSid) {
+          localStorage.setItem('schola_quiz_session_id', joinedSid);
+        }
+        if (res.session && res.session.id) {
+          setSession(res.session);
+        }
+        hasJoinedRef.current = true;
         setHasJoined(true);
       } else {
         setJoinError(res?.message || 'Sikertelen csatlakozás. Ellenőrizd a PIN-kódot!');
@@ -564,8 +651,12 @@ export default function StudentQuizView() {
           </div>
         ) : (session?.status === 'reveal' || session?.status === 'leaderboard') ? (
           /* 4. REVEAL / LEADERBOARD FEEDBACK SCREEN */
+          (() => {
+            const isCorrectFb = answerResult ? Boolean(answerResult.isCorrect) : Boolean(myPlayer?.lastAnswerCorrect);
+            const pointsFb = answerResult ? (answerResult.points || 0) : (myPlayer?.lastPoints || 0);
+            return (
           <div style={{
-            background: answerResult?.isCorrect ? '#26890c' : '#e21b3c',
+            background: isCorrectFb ? '#26890c' : '#e21b3c',
             borderRadius: '20px',
             padding: '36px 24px',
             textAlign: 'center',
@@ -573,14 +664,14 @@ export default function StudentQuizView() {
             color: '#fff'
           }}>
             <div style={{ fontSize: '56px', marginBottom: '12px' }}>
-              {answerResult?.isCorrect ? '🎉' : '❌'}
+              {isCorrectFb ? '🎉' : '❌'}
             </div>
             <h2 style={{ fontSize: '24px', fontWeight: 900, margin: '0 0 6px 0' }}>
-              {answerResult?.isCorrect ? 'HELYES VÁLASZ!' : 'SAJNOS TÉVES!'}
+              {isCorrectFb ? 'HELYES VÁLASZ!' : 'SAJNOS TÉVES!'}
             </h2>
-            {answerResult?.isCorrect && (
+            {isCorrectFb && (
               <div style={{ fontSize: '32px', fontWeight: 900, color: '#ffa602', margin: '10px 0' }}>
-                +{answerResult?.points || 0} pont!
+                +{pointsFb} pont!
               </div>
             )}
             <div style={{
@@ -603,6 +694,8 @@ export default function StudentQuizView() {
               </div>
             </div>
           </div>
+            );
+          })()
         ) : session?.status === 'podium' ? (
           /* 5. FINAL PODIUM / WINNER SCREEN */
           <div style={{
@@ -634,7 +727,25 @@ export default function StudentQuizView() {
               Köszönjük a részvételt! Figyeld a táblát a végső dobogós helyezettekért!
             </p>
           </div>
-        ) : null}
+        ) : (
+          /* FALLBACK WAITING SCREEN (pl. csatlakozás után amíg megjön az állapot) */
+          <div style={{
+            background: 'rgba(255,255,255,0.1)',
+            backdropFilter: 'blur(8px)',
+            border: '2px solid rgba(255,255,255,0.2)',
+            borderRadius: '20px',
+            padding: '36px 24px',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '44px', marginBottom: '12px' }}>⏳</div>
+            <h3 style={{ margin: '0 0 6px 0', fontSize: '18px', fontWeight: 800 }}>
+              Csatlakozva ({playerName})
+            </h3>
+            <p style={{ margin: 0, fontSize: '13px', color: 'rgba(255,255,255,0.75)' }}>
+              Szoba betöltése folyamatban...
+            </p>
+          </div>
+        )}
 
         {/* BOTTOM USER STATUS */}
         {hasJoined && (

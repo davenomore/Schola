@@ -99,8 +99,10 @@ export default function QuizArenaTool({ addNotification }) {
   const [isEditingPin, setIsEditingPin] = useState(false);
   const [customPinInput, setCustomPinInput] = useState('');
 
-  // Question Timer
+  // Question Timer & Polling Race-Condition Guards
   const [timeLeft, setTimeLeft] = useState(20);
+  const pollInFlightRef = useRef(false);
+  const actionSeqRef = useRef(0);
 
   useEffect(() => {
     fetch(`${API_BASE}/api/network-ip`)
@@ -138,14 +140,19 @@ export default function QuizArenaTool({ addNotification }) {
     setQuizzes(data || []);
   };
 
-  // Poll live game state
+  // Poll live game state (egymásra írás és régi válaszok elleni védelemmel)
   const loadState = async () => {
-    const state = await quizArenaService.getState('teacher');
-    if (state && state.id) {
-      setActiveSession(state);
-      if (state.status !== 'lobby' && viewMode === 'library' && state.playersCount > 0) {
-        // If an active game is running, switch to live view
+    if (pollInFlightRef.current) return;
+    pollInFlightRef.current = true;
+    const mySeq = actionSeqRef.current;
+    try {
+      const state = await quizArenaService.getState('teacher');
+      // Ha közben a tanár gombra kattintott (init/start/kick/next), ne írja felül a régi lekérdezés!
+      if (state && state.id && mySeq === actionSeqRef.current) {
+        setActiveSession(state);
       }
+    } finally {
+      pollInFlightRef.current = false;
     }
   };
 
@@ -167,7 +174,10 @@ export default function QuizArenaTool({ addNotification }) {
         if (prev <= 1) {
           clearInterval(timer);
           // auto reveal when time expires
-          quizArenaService.revealAnswer().then(loadState);
+          actionSeqRef.current += 1;
+          quizArenaService.revealAnswer().then((res) => {
+            if (res && res.id) setActiveSession(res);
+          });
           return 0;
         }
         return prev - 1;
@@ -186,7 +196,8 @@ export default function QuizArenaTool({ addNotification }) {
 
   // 1. Start a quiz session (puts into Lobby)
   const handleLaunchQuiz = async (quiz) => {
-    const session = await quizArenaService.initSession(quiz);
+    actionSeqRef.current += 1;
+    const session = await quizArenaService.initSession(quiz, activeSession?.pin || null);
     if (session) {
       setActiveSession(session);
       setViewMode('live');
@@ -341,29 +352,34 @@ export default function QuizArenaTool({ addNotification }) {
 
   // Live game controls
   const handleStartGame = async () => {
+    actionSeqRef.current += 1;
     const res = await quizArenaService.startSession();
-    if (res) setActiveSession(res);
+    if (res && res.id) setActiveSession(res);
   };
 
   const handleRevealAnswer = async () => {
+    actionSeqRef.current += 1;
     const res = await quizArenaService.revealAnswer();
-    if (res) setActiveSession(res);
+    if (res && res.id) setActiveSession(res);
   };
 
   const handleShowLeaderboard = async () => {
+    actionSeqRef.current += 1;
     const res = await quizArenaService.showLeaderboard();
-    if (res) setActiveSession(res);
+    if (res && res.id) setActiveSession(res);
   };
 
   const handleNextQuestion = async () => {
+    actionSeqRef.current += 1;
     const res = await quizArenaService.nextQuestion();
-    if (res) setActiveSession(res);
+    if (res && res.id) setActiveSession(res);
   };
 
   const handleResetGame = async () => {
     if (!window.confirm('Biztosan visszaállítod a kvízt a lobby állapotba?')) return;
+    actionSeqRef.current += 1;
     const res = await quizArenaService.resetSession();
-    if (res) setActiveSession(res);
+    if (res && res.id) setActiveSession(res);
   };
 
   const currentQ = activeSession?.currentQuestion;
@@ -1285,6 +1301,30 @@ export default function QuizArenaTool({ addNotification }) {
                 <div style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '2px', textTransform: 'uppercase', color: '#46178f', marginBottom: '8px' }}>
                   Csatlakozz a telefonoddal!
                 </div>
+
+                {/* VERCEL SERVERLESS ADATBÁZIS FIGYELMEZTETÉS (csak akkor jelenik meg, ha Vercelen még nincs Upstash Redis / KV bekötve) */}
+                {activeSession?.storageMode === 'ephemeral-serverless' && (
+                  <div style={{
+                    background: 'rgba(245, 158, 11, 0.14)',
+                    border: '1.5px solid rgba(245, 158, 11, 0.5)',
+                    borderRadius: '12px',
+                    padding: '12px 16px',
+                    marginBottom: '18px',
+                    textAlign: 'left',
+                    fontSize: '12px',
+                    lineHeight: 1.5,
+                    color: 'var(--text-primary)'
+                  }}>
+                    <div style={{ fontWeight: 800, color: '#d97706', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>⚠️</span>
+                      <span>Vercel közös tárhely (Upstash Redis) még nincs bekötve!</span>
+                    </div>
+                    <div>
+                      Vercel szerverless módban közös adatbázis nélkül a csatlakozott diákok eltűnhetnek frissítéskor.
+                      Kapcsold be 1 perc alatt: <strong>Vercel Dashboard → Storage → Create Database → Upstash Redis → Connect to Project → Redeploy</strong>.
+                    </div>
+                  </div>
+                )}
                 
                 {/* BIG PIN BADGE & CONTROLS */}
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
@@ -1313,6 +1353,7 @@ export default function QuizArenaTool({ addNotification }) {
                       <button
                         onClick={async () => {
                           if (!customPinInput.trim()) return;
+                          actionSeqRef.current += 1;
                           const res = await quizArenaService.updatePin(customPinInput.trim());
                           if (res && res.success) {
                             setActiveSession(prev => ({ ...prev, pin: res.pin }));
@@ -1388,6 +1429,7 @@ export default function QuizArenaTool({ addNotification }) {
                         </button>
                         <button
                           onClick={async () => {
+                            actionSeqRef.current += 1;
                             const res = await quizArenaService.updatePin(null);
                             if (res && res.success) {
                               setActiveSession(prev => ({ ...prev, pin: res.pin }));
@@ -1544,9 +1586,11 @@ export default function QuizArenaTool({ addNotification }) {
                     {(activeSession.playersCount > 0 || (activeSession.players && activeSession.players.length > 0)) && (
                       <button
                         onClick={async () => {
+                          actionSeqRef.current += 1;
                           const res = await quizArenaService.clearAllPlayers();
                           if (res && res.success) {
-                            setActiveSession(prev => ({ ...prev, players: [], playersCount: 0 }));
+                            if (res.id) setActiveSession(res);
+                            else setActiveSession(prev => ({ ...prev, players: [], playersCount: 0 }));
                             if (addNotification) addNotification('Játékoslista kiürítve!', 'success');
                           }
                         }}
@@ -1592,9 +1636,11 @@ export default function QuizArenaTool({ addNotification }) {
                           <button
                             onClick={async (e) => {
                               e.stopPropagation();
+                              actionSeqRef.current += 1;
                               const res = await quizArenaService.removePlayer(p.id);
                               if (res && res.success) {
-                                setActiveSession(prev => ({
+                                if (res.id) setActiveSession(res);
+                                else setActiveSession(prev => ({
                                   ...prev,
                                   players: prev.players.filter(pl => pl.id !== p.id),
                                   playersCount: Math.max(0, (prev.playersCount || 1) - 1)

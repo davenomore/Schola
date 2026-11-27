@@ -6,6 +6,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const kretaService = require('./kretaService');
+const { createQuizStore } = require('./quizStore');
 
 const app = express();
 app.use(cors());
@@ -611,8 +612,6 @@ app.get('/api/timetable/export-ical', (req, res) => {
 const ARENA_COLORS = ['#e21b3c', '#1368ce', '#ffa602', '#26890c']; // Piros, Kék, Sárga, Zöld
 const ARENA_SHAPES = ['▲', '◆', '●', '■'];
 
-const SAVED_QUIZZES_FILE = path.join(__dirname, 'saved_quizzes.json');
-
 const INITIAL_DEFAULT_QUIZZES = [
   {
     id: 'quiz-math-1',
@@ -692,77 +691,102 @@ const INITIAL_DEFAULT_QUIZZES = [
   }
 ];
 
-function loadPersistedQuizzes() {
+const quizStore = createQuizStore({
+  initialDefaultQuizzes: INITIAL_DEFAULT_QUIZZES,
+  serverDir: __dirname
+});
+
+// Cache tiltása minden élő Kvíz Aréna végponton (Vercel CDN / mobil böngésző ne adhasson régi állapotot!)
+app.use('/api/quiz-arena', (req, res, next) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.set('Pragma', 'no-cache');
+  res.set('Expires', '0');
+  next();
+});
+
+// Egységes session válasz-formázó minden végponthoz
+function buildSessionResponse(session, isStudent = false) {
+  const questions = Array.isArray(session.questions) ? session.questions : [];
+  const currentQ = questions[session.currentQuestionIndex] || null;
+  const players = Array.isArray(session.players) ? session.players : [];
+
+  let safeQ = null;
+  if (currentQ) {
+    safeQ = {
+      ...currentQ,
+      correctOptionId: (isStudent && session.status === 'question') ? null : currentQ.correctOptionId,
+      correctAnswer: (isStudent && session.status === 'question') ? null : currentQ.correctAnswer
+    };
+  }
+
+  return {
+    success: true,
+    id: session.id,
+    pin: session.pin,
+    status: session.status,
+    quizId: session.quizId,
+    title: session.title,
+    quiz: isStudent ? undefined : {
+      id: session.quizId,
+      title: session.title,
+      questions
+    },
+    currentQuestionIndex: session.currentQuestionIndex,
+    totalQuestions: questions.length,
+    currentQuestion: safeQ,
+    timeLimit: currentQ ? currentQ.timeLimit || 20 : 20,
+    questionStartTime: session.questionStartTime,
+    playersCount: players.length,
+    answeredCount: players.filter(p => p.answered).length,
+    answersHistory: isStudent ? undefined : (session.answersHistory || {}),
+    players: players.map(p => ({
+      id: p.id,
+      name: p.name,
+      score: p.score || 0,
+      streak: p.streak || 0,
+      answered: Boolean(p.answered),
+      lastPoints: p.lastPoints || 0,
+      lastAnswerCorrect: p.lastAnswerCorrect ?? null
+    })),
+    updatedAt: session.updatedAt || Date.now(),
+    storageMode: quizStore.storageMode,
+    isServerless: quizStore.isServerless
+  };
+}
+
+// 1. Mentett kvízek lekérése (Redis / merevlemez perzisztált)
+app.get('/api/quiz-arena/saved', async (req, res) => {
   try {
-    if (fs.existsSync(SAVED_QUIZZES_FILE)) {
-      const data = JSON.parse(fs.readFileSync(SAVED_QUIZZES_FILE, 'utf8'));
-      if (Array.isArray(data) && data.length > 0) {
-        return data;
-      }
+    const quizzes = await quizStore.getSavedQuizzes();
+    res.json({ success: true, quizzes, storageMode: quizStore.storageMode });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 2. Kvíz mentése vagy felülbírálása (Redis / merevlemez perzisztált)
+app.post('/api/quiz-arena/saved', async (req, res) => {
+  try {
+    const { quiz } = req.body;
+    if (!quiz || !quiz.title) {
+      return res.status(400).json({ success: false, message: 'Hiányzó kvíz adatok.' });
     }
+    const result = await quizStore.saveQuiz(quiz);
+    res.json({ success: true, quiz: result.quiz, quizzes: result.quizzes, storageMode: quizStore.storageMode });
   } catch (err) {
-    console.error('Nem sikerült betölteni a mentett kvízeket:', err);
+    res.status(500).json({ success: false, error: err.message });
   }
-  // Ha még nincs fájl, mentsük le a kezdeti listát a lemezre:
-  try {
-    fs.writeFileSync(SAVED_QUIZZES_FILE, JSON.stringify(INITIAL_DEFAULT_QUIZZES, null, 2), 'utf8');
-  } catch (_) {}
-  return INITIAL_DEFAULT_QUIZZES;
-}
-
-function savePersistedQuizzes(quizzes) {
-  try {
-    fs.writeFileSync(SAVED_QUIZZES_FILE, JSON.stringify(quizzes, null, 2), 'utf8');
-  } catch (err) {
-    console.error('Nem sikerült menteni a kvízeket a lemezre:', err);
-  }
-}
-
-let savedQuizzes = loadPersistedQuizzes();
-
-let quizSession = {
-  id: 'session-default',
-  pin: '582914',
-  status: 'lobby', // 'lobby' | 'question' | 'reveal' | 'leaderboard' | 'podium'
-  quizId: 'quiz-math-1',
-  title: 'Másodfokú egyenletek és függvények',
-  currentQuestionIndex: 0,
-  timeLimit: 20,
-  questionStartTime: 0,
-  questions: (savedQuizzes[0] && savedQuizzes[0].questions) ? savedQuizzes[0].questions : INITIAL_DEFAULT_QUIZZES[0].questions,
-  players: [],
-  answersHistory: {}
-};
-
-// 1. Mentett kvízek lekérése (merevlemezről perzisztált)
-app.get('/api/quiz-arena/saved', (req, res) => {
-  res.json({ success: true, quizzes: savedQuizzes });
 });
 
-// 2. Kvíz mentése vagy felülbírálása (merevlemezre perzisztált)
-app.post('/api/quiz-arena/saved', (req, res) => {
-  const { quiz } = req.body;
-  if (!quiz || !quiz.title) {
-    return res.status(400).json({ success: false, message: 'Hiányzó kvíz adatok.' });
+// 3. Mentett kvíz törlése (Redis / merevlemez)
+app.delete('/api/quiz-arena/saved/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const quizzes = await quizStore.deleteQuiz(id);
+    res.json({ success: true, quizzes, storageMode: quizStore.storageMode });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
   }
-
-  const existingIdx = savedQuizzes.findIndex(q => q.id === quiz.id);
-  if (existingIdx >= 0) {
-    savedQuizzes[existingIdx] = quiz;
-  } else {
-    quiz.id = quiz.id || 'quiz-' + Date.now();
-    savedQuizzes.unshift(quiz);
-  }
-  savePersistedQuizzes(savedQuizzes);
-  res.json({ success: true, quiz, quizzes: savedQuizzes });
-});
-
-// 3. Mentett kvíz törlése (merevlemezről törölt)
-app.delete('/api/quiz-arena/saved/:id', (req, res) => {
-  const { id } = req.params;
-  savedQuizzes = savedQuizzes.filter(q => q.id !== id);
-  savePersistedQuizzes(savedQuizzes);
-  res.json({ success: true, quizzes: savedQuizzes });
 });
 
 // 4. AI Kvíz Generálás témakörhöz felülbírálható kérdéssorral
@@ -1107,314 +1131,177 @@ app.post('/api/quiz-arena/ai-generate', (req, res) => {
 });
 
 // 5. Élő Kvíz Állapot lekérése (Tanárnak vagy Diáknak)
-app.get('/api/quiz-arena/state', (req, res) => {
-  const currentQ = quizSession.questions[quizSession.currentQuestionIndex] || null;
-  
-  // Ha diák kéri és még 'question' fázisban van, elrejtjük a helyes választ!
-  const isStudent = req.query.role === 'student';
-  let safeQ = null;
-  if (currentQ) {
-    safeQ = {
-      ...currentQ,
-      correctOptionId: (isStudent && quizSession.status === 'question') ? null : currentQ.correctOptionId,
-      correctAnswer: (isStudent && quizSession.status === 'question') ? null : currentQ.correctAnswer
-    };
-  }
-
-  res.json({
-    success: true,
-    id: quizSession.id,
-    pin: quizSession.pin,
-    status: quizSession.status,
-    title: quizSession.title,
-    currentQuestionIndex: quizSession.currentQuestionIndex,
-    totalQuestions: quizSession.questions.length,
-    currentQuestion: safeQ,
-    timeLimit: currentQ ? currentQ.timeLimit || 20 : 20,
-    questionStartTime: quizSession.questionStartTime,
-    playersCount: quizSession.players.length,
-    answeredCount: quizSession.players.filter(p => p.answered).length,
-    answersHistory: isStudent ? undefined : (quizSession.answersHistory || {}),
-    players: quizSession.players.map(p => ({
-      id: p.id,
-      name: p.name,
-      score: p.score,
-      streak: p.streak,
-      answered: p.answered,
-      lastPoints: p.lastPoints,
-      lastAnswerCorrect: p.lastAnswerCorrect
-    }))
-  });
-});
-
-// 6. Új élő kvíz indítása egy kiválasztott sablonból (Lobby állapotba helyezés)
-app.post('/api/quiz-arena/init', (req, res) => {
-  const { quiz, pin } = req.body;
-  // Ha a tanár megadott PIN-t, azt használjuk, különben megtartjuk az aktuális PIN-t (nem változtatjuk feleslegesen)
-  const sessionPin = (pin && String(pin).trim()) || quizSession?.pin || '582914';
-  
-  quizSession = {
-    id: 'session-' + Date.now(),
-    pin: sessionPin,
-    status: 'lobby',
-    quizId: quiz?.id || 'custom',
-    title: quiz?.title || 'Schola Kvíz',
-    currentQuestionIndex: 0,
-    timeLimit: 20,
-    questionStartTime: 0,
-    questions: quiz?.questions && quiz.questions.length > 0 ? quiz.questions : savedQuizzes[0].questions,
-    players: [],
-    answersHistory: {}
-  };
-
-  res.json({ success: true, ...quizSession });
-});
-
-// 6.b PIN módosítása vagy újragenerálása
-app.post('/api/quiz-arena/pin', (req, res) => {
-  const { pin } = req.body;
-  if (pin && String(pin).trim()) {
-    quizSession.pin = String(pin).trim();
-  } else {
-    quizSession.pin = String(Math.floor(100000 + Math.random() * 900000));
-  }
-  res.json({ success: true, pin: quizSession.pin });
-});
-
-// 7. Diák csatlakozása a Lobbyhoz névvel és PIN-nel
-app.post('/api/quiz-arena/join', (req, res) => {
-  const { name, pin } = req.body;
-  if (!name || !name.trim()) {
-    return res.status(400).json({ success: false, message: 'Kérlek adj meg egy nevet!' });
-  }
-
-  // Ha meg van adva PIN, ellenőrizzük (ha üres, engedélyezzük a legutóbbi aktív játékot)
-  if (pin && String(pin).trim() !== String(quizSession.pin).trim()) {
-    return res.status(403).json({ success: false, message: 'Érvénytelen PIN kód! Ellenőrizd a kivetítőt.' });
-  }
-
-  const cleanName = name.trim();
-  let player = quizSession.players.find(p => p.name.toLowerCase() === cleanName.toLowerCase());
-  
-  if (!player) {
-    player = {
-      id: 'p-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
-      name: cleanName,
-      score: 0,
-      streak: 0,
-      answered: false,
-      lastAnswerCorrect: null,
-      lastPoints: 0
-    };
-    quizSession.players.push(player);
-  }
-
-  res.json({
-    success: true,
-    player,
-    playerId: player.id,
-    sessionTitle: quizSession.title,
-    status: quizSession.status
-  });
-});
-
-// 7.b Játékos eltávolítása vagy teljes lobby kiürítése (Tanár)
-app.post('/api/quiz-arena/kick', (req, res) => {
-  const { playerId, clearAll } = req.body;
-  if (clearAll) {
-    quizSession.players = [];
-  } else if (playerId) {
-    quizSession.players = quizSession.players.filter(p => p.id !== playerId);
-  }
-  res.json({ success: true, players: quizSession.players, playersCount: quizSession.players.length });
-});
-
-// 8. Játék indítása a Tanár által (Lobby -> 1. Kérdés)
-app.post('/api/quiz-arena/start', (req, res) => {
-  quizSession.status = 'question';
-  quizSession.currentQuestionIndex = 0;
-  quizSession.questionStartTime = Date.now();
-  quizSession.players.forEach(p => {
-    p.answered = false;
-    p.lastAnswerCorrect = null;
-    p.lastPoints = 0;
-  });
-
-  res.json({ success: true, ...quizSession });
-});
-
-// 9. Diák válaszának beküldése
-app.post('/api/quiz-arena/answer', (req, res) => {
-  const { playerId, optionId, numericAnswer, responseTimeMs } = req.body;
-  if (quizSession.status !== 'question') {
-    return res.status(400).json({ success: false, message: 'A válaszadási idő már lezárult!' });
-  }
-
-  const player = quizSession.players.find(p => p.id === playerId);
-  if (!player) {
-    return res.status(404).json({ success: false, message: 'A játékos nem található.' });
-  }
-
-  const currentQ = quizSession.questions[quizSession.currentQuestionIndex];
-  if (!currentQ) {
-    return res.status(400).json({ success: false, message: 'Nincs aktív kérdés.' });
-  }
-
-  let isCorrect = false;
-  if (currentQ.type === 'numeric') {
-    const userVal = String(numericAnswer !== undefined ? numericAnswer : '').replace(',', '.').trim();
-    const targetVal = String(currentQ.correctAnswer !== undefined ? currentQ.correctAnswer : '').replace(',', '.').trim();
-    const userNum = parseFloat(userVal);
-    const targetNum = parseFloat(targetVal);
-    const tol = parseFloat(currentQ.tolerance || 0);
-    if (!isNaN(userNum) && !isNaN(targetNum)) {
-      isCorrect = Math.abs(userNum - targetNum) <= tol;
-    } else {
-      isCorrect = userVal.toLowerCase() === targetVal.toLowerCase();
-    }
-  } else {
-    isCorrect = (optionId === currentQ.correctOptionId);
-  }
-
-  const timeLimit = (currentQ.timeLimit || 20) * 1000;
-  const elapsed = Math.min(timeLimit, Math.max(200, Number(responseTimeMs) || 5000));
-  
-  // Interaktív pontképlet: max 1000 pont, időarányosan csökkenő, minimum 200 helyes válaszért
-  let points = 0;
-  if (isCorrect) {
-    const timeFraction = elapsed / timeLimit;
-    points = Math.round(1000 * (1 - (timeFraction / 2)));
-    points = Math.max(200, points);
-    player.streak = (player.streak || 0) + 1;
-    // Streak bónusz
-    if (player.streak >= 2) points += 100;
-  } else {
-    player.streak = 0;
-  }
-
-  player.score = (player.score || 0) + points;
-  player.answered = true;
-  player.lastAnswerCorrect = isCorrect;
-  player.lastPoints = points;
-
-  // Válasz mentése a statisztikai történetbe
-  if (!quizSession.answersHistory) quizSession.answersHistory = {};
-  const qIdx = quizSession.currentQuestionIndex;
-  if (!quizSession.answersHistory[qIdx]) quizSession.answersHistory[qIdx] = [];
-  
-  const existingRespIdx = quizSession.answersHistory[qIdx].findIndex(r => r.playerId === player.id);
-  const respItem = {
-    playerId: player.id,
-    playerName: player.name,
-    optionId: optionId || null,
-    numericAnswer: numericAnswer !== undefined ? String(numericAnswer).trim() : null,
-    isCorrect,
-    points,
-    responseTimeMs: elapsed
-  };
-
-  if (existingRespIdx >= 0) {
-    quizSession.answersHistory[qIdx][existingRespIdx] = respItem;
-  } else {
-    quizSession.answersHistory[qIdx].push(respItem);
-  }
-
-  res.json({
-    success: true,
-    isCorrect,
-    points,
-    currentScore: player.score,
-    streak: player.streak
-  });
-});
-
-// 10. Eredmények felfedése a kérdés után (Tanár)
-app.post('/api/quiz-arena/reveal', (req, res) => {
-  quizSession.status = 'reveal';
-  res.json({ success: true, ...quizSession });
-});
-
-// 11. Ranglista képernyő megjelenítése (Tanár)
-app.post('/api/quiz-arena/leaderboard', (req, res) => {
-  quizSession.status = 'leaderboard';
-  res.json({ success: true, ...quizSession });
-});
-
-// 12. Következő kérdésre ugrás vagy Végeredmény (Podium)
-app.post('/api/quiz-arena/next', (req, res) => {
-  if (quizSession.currentQuestionIndex < quizSession.questions.length - 1) {
-    quizSession.currentQuestionIndex += 1;
-    quizSession.status = 'question';
-    quizSession.questionStartTime = Date.now();
-    quizSession.players.forEach(p => {
-      p.answered = false;
-      p.lastAnswerCorrect = null;
-      p.lastPoints = 0;
-    });
-  } else {
-    // Vége a kvíznek -> Dobogó / Podium!
-    quizSession.status = 'podium';
-  }
-
-  res.json({ success: true, ...quizSession });
-});
-
-// 13. Kvíz újraindítása vagy vissza a lobbyba
-app.post('/api/quiz-arena/reset', (req, res) => {
-  quizSession.status = 'lobby';
-  quizSession.currentQuestionIndex = 0;
-  quizSession.answersHistory = {};
-  quizSession.players.forEach(p => {
-    p.score = 0;
-    p.streak = 0;
-    p.answered = false;
-    p.lastAnswerCorrect = null;
-    p.lastPoints = 0;
-  });
-  res.json({ success: true, ...quizSession });
-});
-
-// 14. Teljes Tanári Riport lekérése
-app.get('/api/quiz-arena/report', (req, res) => {
-  res.json({
-    success: true,
-    quiz: {
-      id: quizSession.quizId,
-      title: quizSession.title,
-      questions: quizSession.questions
-    },
-    players: quizSession.players,
-    answersHistory: quizSession.answersHistory || {}
-  });
-});
-
-// Központi műszerfal-konfiguráció mentése és betöltése (összeszköz-szinkronizáció)
-const DASHBOARD_CONFIG_FILE = path.join(__dirname, 'dashboard_config.json');
-
-app.get('/api/dashboard-config', (req, res) => {
+app.get('/api/quiz-arena/state', async (req, res) => {
   try {
-    if (fs.existsSync(DASHBOARD_CONFIG_FILE)) {
-      const data = JSON.parse(fs.readFileSync(DASHBOARD_CONFIG_FILE, 'utf8'));
-      return res.json({ success: true, data });
-    }
-    res.json({ success: true, data: null });
+    const isStudent = req.query.role === 'student';
+    const session = await quizStore.getSession({ includeAnswers: !isStudent });
+    res.json(buildSessionResponse(session, isStudent));
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-app.post('/api/dashboard-config', (req, res) => {
+// 6. Új élő kvíz indítása egy kiválasztott sablonból (Lobby állapotba helyezés)
+app.post('/api/quiz-arena/init', async (req, res) => {
+  try {
+    const { quiz, pin } = req.body;
+    const session = await quizStore.initSession({ quiz, pin });
+    res.json(buildSessionResponse(session, false));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6.b PIN módosítása vagy újragenerálása
+app.post('/api/quiz-arena/pin', async (req, res) => {
+  try {
+    const { pin } = req.body;
+    const updatedPin = await quizStore.updatePin(pin);
+    res.json({ success: true, pin: updatedPin });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 7. Diák csatlakozása a Lobbyhoz névvel és PIN-nel
+app.post('/api/quiz-arena/join', async (req, res) => {
+  try {
+    const { name, pin } = req.body;
+    const result = await quizStore.joinPlayer({ name, pin });
+    if (result.error) {
+      return res.status(result.status || 400).json({ success: false, message: result.error });
+    }
+    const { player, session } = result;
+    res.json({
+      success: true,
+      player,
+      playerId: player.id,
+      sessionId: session.id,
+      sessionTitle: session.title,
+      status: session.status,
+      session: buildSessionResponse(session, true)
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Szerverhiba a csatlakozásnál: ' + err.message });
+  }
+});
+
+// 7.b Játékos eltávolítása vagy teljes lobby kiürítése (Tanár)
+app.post('/api/quiz-arena/kick', async (req, res) => {
+  try {
+    const { playerId, clearAll } = req.body;
+    const session = await quizStore.kickPlayer({ playerId, clearAll });
+    res.json(buildSessionResponse(session, false));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 8. Játék indítása a Tanár által (Lobby -> 1. Kérdés)
+app.post('/api/quiz-arena/start', async (req, res) => {
+  try {
+    const session = await quizStore.startGame();
+    res.json(buildSessionResponse(session, false));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 9. Diák válaszának beküldése
+app.post('/api/quiz-arena/answer', async (req, res) => {
+  try {
+    const { playerId, optionId, numericAnswer, responseTimeMs } = req.body;
+    const result = await quizStore.submitAnswer({ playerId, optionId, numericAnswer, responseTimeMs });
+    if (result.error) {
+      return res.status(result.status || 400).json({ success: false, message: result.error });
+    }
+    res.json({
+      success: true,
+      isCorrect: result.isCorrect,
+      points: result.points,
+      currentScore: result.currentScore,
+      streak: result.streak
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Szerverhiba a válasz beküldésénél: ' + err.message });
+  }
+});
+
+// 10. Eredmények felfedése a kérdés után (Tanár)
+app.post('/api/quiz-arena/reveal', async (req, res) => {
+  try {
+    const session = await quizStore.setStatus('reveal');
+    res.json(buildSessionResponse(session, false));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 11. Ranglista képernyő megjelenítése (Tanár)
+app.post('/api/quiz-arena/leaderboard', async (req, res) => {
+  try {
+    const session = await quizStore.setStatus('leaderboard');
+    res.json(buildSessionResponse(session, false));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 12. Következő kérdésre ugrás vagy Végeredmény (Podium)
+app.post('/api/quiz-arena/next', async (req, res) => {
+  try {
+    const session = await quizStore.nextQuestion();
+    res.json(buildSessionResponse(session, false));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 13. Kvíz újraindítása vagy vissza a lobbyba
+app.post('/api/quiz-arena/reset', async (req, res) => {
+  try {
+    const session = await quizStore.resetSession();
+    res.json(buildSessionResponse(session, false));
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 14. Teljes Tanári Riport lekérése
+app.get('/api/quiz-arena/report', async (req, res) => {
+  try {
+    const session = await quizStore.getSession({ includeAnswers: true });
+    res.json({
+      success: true,
+      quiz: {
+        id: session.quizId,
+        title: session.title,
+        questions: session.questions
+      },
+      players: session.players,
+      answersHistory: session.answersHistory || {},
+      storageMode: quizStore.storageMode
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Központi műszerfal-konfiguráció mentése és betöltése (összeszköz-szinkronizáció + Vercel kompatibilis)
+app.get('/api/dashboard-config', async (req, res) => {
+  try {
+    const data = await quizStore.getDashboardConfig();
+    res.json({ success: true, data });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/dashboard-config', async (req, res) => {
   try {
     const { config } = req.body;
     if (config && typeof config === 'object') {
-      let existing = {};
-      if (fs.existsSync(DASHBOARD_CONFIG_FILE)) {
-        try {
-          existing = JSON.parse(fs.readFileSync(DASHBOARD_CONFIG_FILE, 'utf8'));
-        } catch (_) {}
-      }
-      const updated = { ...existing, ...config };
-      fs.writeFileSync(DASHBOARD_CONFIG_FILE, JSON.stringify(updated, null, 2), 'utf8');
+      const updated = await quizStore.saveDashboardConfig(config);
       return res.json({ success: true, data: updated });
     }
     res.status(400).json({ success: false, message: 'Érvénytelen konfiguráció' });

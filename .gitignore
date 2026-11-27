@@ -48,3 +48,4 @@ Thumbs.db
 
 # Kréta munkamenet (sütik) - ne kerüljön a repóba
 server/kreta_session.json
+server/quiz_session.json

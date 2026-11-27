@@ -542,7 +542,10 @@ KÖVETELMÉNYEK:
 
   async getState(role = 'teacher') {
     try {
-      const res = await fetch(`${API_BASE}/api/quiz-arena/state?role=${role}`, { cache: 'no-store' });
+      const res = await fetch(`${API_BASE}/api/quiz-arena/state?role=${role}&_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
       if (res.ok) {
         const json = await res.json();
         if (json.success) return json;
