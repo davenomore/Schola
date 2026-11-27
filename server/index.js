@@ -611,7 +611,9 @@ app.get('/api/timetable/export-ical', (req, res) => {
 const ARENA_COLORS = ['#e21b3c', '#1368ce', '#ffa602', '#26890c']; // Piros, Kék, Sárga, Zöld
 const ARENA_SHAPES = ['▲', '◆', '●', '■'];
 
-let savedQuizzes = [
+const SAVED_QUIZZES_FILE = path.join(__dirname, 'saved_quizzes.json');
+
+const INITIAL_DEFAULT_QUIZZES = [
   {
     id: 'quiz-math-1',
     title: 'Másodfokú egyenletek és függvények',
@@ -690,6 +692,34 @@ let savedQuizzes = [
   }
 ];
 
+function loadPersistedQuizzes() {
+  try {
+    if (fs.existsSync(SAVED_QUIZZES_FILE)) {
+      const data = JSON.parse(fs.readFileSync(SAVED_QUIZZES_FILE, 'utf8'));
+      if (Array.isArray(data) && data.length > 0) {
+        return data;
+      }
+    }
+  } catch (err) {
+    console.error('Nem sikerült betölteni a mentett kvízeket:', err);
+  }
+  // Ha még nincs fájl, mentsük le a kezdeti listát a lemezre:
+  try {
+    fs.writeFileSync(SAVED_QUIZZES_FILE, JSON.stringify(INITIAL_DEFAULT_QUIZZES, null, 2), 'utf8');
+  } catch (_) {}
+  return INITIAL_DEFAULT_QUIZZES;
+}
+
+function savePersistedQuizzes(quizzes) {
+  try {
+    fs.writeFileSync(SAVED_QUIZZES_FILE, JSON.stringify(quizzes, null, 2), 'utf8');
+  } catch (err) {
+    console.error('Nem sikerült menteni a kvízeket a lemezre:', err);
+  }
+}
+
+let savedQuizzes = loadPersistedQuizzes();
+
 let quizSession = {
   id: 'session-default',
   pin: '582914',
@@ -699,21 +729,17 @@ let quizSession = {
   currentQuestionIndex: 0,
   timeLimit: 20,
   questionStartTime: 0,
-  questions: savedQuizzes[0].questions,
-  players: [
-    { id: 'p-1', name: 'Bence', score: 1850, streak: 2, answered: false, lastPoints: 920, lastAnswerCorrect: true },
-    { id: 'p-2', name: 'Zsófi', score: 1720, streak: 2, answered: false, lastPoints: 860, lastAnswerCorrect: true },
-    { id: 'p-3', name: 'Dániel', score: 950, streak: 1, answered: false, lastPoints: 950, lastAnswerCorrect: true }
-  ],
+  questions: (savedQuizzes[0] && savedQuizzes[0].questions) ? savedQuizzes[0].questions : INITIAL_DEFAULT_QUIZZES[0].questions,
+  players: [],
   answersHistory: {}
 };
 
-// 1. Mentett kvízek lekérése
+// 1. Mentett kvízek lekérése (merevlemezről perzisztált)
 app.get('/api/quiz-arena/saved', (req, res) => {
   res.json({ success: true, quizzes: savedQuizzes });
 });
 
-// 2. Kvíz mentése vagy felülbírálása
+// 2. Kvíz mentése vagy felülbírálása (merevlemezre perzisztált)
 app.post('/api/quiz-arena/saved', (req, res) => {
   const { quiz } = req.body;
   if (!quiz || !quiz.title) {
@@ -727,13 +753,15 @@ app.post('/api/quiz-arena/saved', (req, res) => {
     quiz.id = quiz.id || 'quiz-' + Date.now();
     savedQuizzes.unshift(quiz);
   }
+  savePersistedQuizzes(savedQuizzes);
   res.json({ success: true, quiz, quizzes: savedQuizzes });
 });
 
-// 3. Mentett kvíz törlése
+// 3. Mentett kvíz törlése (merevlemezről törölt)
 app.delete('/api/quiz-arena/saved/:id', (req, res) => {
   const { id } = req.params;
   savedQuizzes = savedQuizzes.filter(q => q.id !== id);
+  savePersistedQuizzes(savedQuizzes);
   res.json({ success: true, quizzes: savedQuizzes });
 });
 
@@ -1188,6 +1216,17 @@ app.post('/api/quiz-arena/join', (req, res) => {
     sessionTitle: quizSession.title,
     status: quizSession.status
   });
+});
+
+// 7.b Játékos eltávolítása vagy teljes lobby kiürítése (Tanár)
+app.post('/api/quiz-arena/kick', (req, res) => {
+  const { playerId, clearAll } = req.body;
+  if (clearAll) {
+    quizSession.players = [];
+  } else if (playerId) {
+    quizSession.players = quizSession.players.filter(p => p.id !== playerId);
+  }
+  res.json({ success: true, players: quizSession.players, playersCount: quizSession.players.length });
 });
 
 // 8. Játék indítása a Tanár által (Lobby -> 1. Kérdés)

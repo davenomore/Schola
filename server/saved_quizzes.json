@@ -1,0 +1,178 @@
+[
+  {
+    "id": "quiz-math-1",
+    "title": "Másodfokú egyenletek és függvények",
+    "subject": "Matematika",
+    "grade": "10. évfolyam",
+    "questions": [
+      {
+        "id": "q-1",
+        "question": "Mennyi a másodfokú egyenlet diszkriminánsa, ha a = 1, b = -6, c = 9?",
+        "timeLimit": 20,
+        "correctOptionId": "opt-1",
+        "options": [
+          {
+            "id": "opt-1",
+            "text": "0 (egy valós gyök van)",
+            "color": "#e21b3c",
+            "shape": "▲"
+          },
+          {
+            "id": "opt-2",
+            "text": "36 (két pozitív gyök)",
+            "color": "#1368ce",
+            "shape": "◆"
+          },
+          {
+            "id": "opt-3",
+            "text": "-18 (nincs valós gyök)",
+            "color": "#ffa602",
+            "shape": "●"
+          },
+          {
+            "id": "opt-4",
+            "text": "12 (végtelen gyök)",
+            "color": "#26890c",
+            "shape": "■"
+          }
+        ]
+      },
+      {
+        "id": "q-2",
+        "question": "Mi a megoldóképlet helyes alakja ax² + bx + c = 0 esetén?",
+        "timeLimit": 20,
+        "correctOptionId": "opt-2",
+        "options": [
+          {
+            "id": "opt-1",
+            "text": "x = (b ± √(b² - 4ac)) / (2a)",
+            "color": "#e21b3c",
+            "shape": "▲"
+          },
+          {
+            "id": "opt-2",
+            "text": "x = (-b ± √(b² - 4ac)) / (2a)",
+            "color": "#1368ce",
+            "shape": "◆"
+          },
+          {
+            "id": "opt-3",
+            "text": "x = (-b ± √(b² + 4ac)) / a",
+            "color": "#ffa602",
+            "shape": "●"
+          },
+          {
+            "id": "opt-4",
+            "text": "x = (-b ± √(b² - 2ac)) / (4a)",
+            "color": "#26890c",
+            "shape": "■"
+          }
+        ]
+      },
+      {
+        "id": "q-3",
+        "question": "Milyen alakzat az f(x) = x² - 4x + 3 függvény grafikonja?",
+        "timeLimit": 15,
+        "correctOptionId": "opt-3",
+        "options": [
+          {
+            "id": "opt-1",
+            "text": "Egyenes vonal",
+            "color": "#e21b3c",
+            "shape": "▲"
+          },
+          {
+            "id": "opt-2",
+            "text": "Hiperbola",
+            "color": "#1368ce",
+            "shape": "◆"
+          },
+          {
+            "id": "opt-3",
+            "text": "Felfelé nyíló parabola",
+            "color": "#ffa602",
+            "shape": "●"
+          },
+          {
+            "id": "opt-4",
+            "text": "Lefelé nyíló parabola",
+            "color": "#26890c",
+            "shape": "■"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "id": "quiz-physics-1",
+    "title": "Newton törvényei és dinamika",
+    "subject": "Fizika",
+    "grade": "9. évfolyam",
+    "questions": [
+      {
+        "id": "q-1",
+        "question": "Newton II. törvénye szerint: F = ?",
+        "timeLimit": 15,
+        "correctOptionId": "opt-1",
+        "options": [
+          {
+            "id": "opt-1",
+            "text": "m · a (tömeg szorozva gyorsulással)",
+            "color": "#e21b3c",
+            "shape": "▲"
+          },
+          {
+            "id": "opt-2",
+            "text": "m · v (lendület)",
+            "color": "#1368ce",
+            "shape": "◆"
+          },
+          {
+            "id": "opt-3",
+            "text": "1/2 · m · v²",
+            "color": "#ffa602",
+            "shape": "●"
+          },
+          {
+            "id": "opt-4",
+            "text": "m · g · h",
+            "color": "#26890c",
+            "shape": "■"
+          }
+        ]
+      },
+      {
+        "id": "q-2",
+        "question": "Mi a tehetetlenség mértéke a fizikában?",
+        "timeLimit": 20,
+        "correctOptionId": "opt-3",
+        "options": [
+          {
+            "id": "opt-1",
+            "text": "A sebesség",
+            "color": "#e21b3c",
+            "shape": "▲"
+          },
+          {
+            "id": "opt-2",
+            "text": "A térfogat",
+            "color": "#1368ce",
+            "shape": "◆"
+          },
+          {
+            "id": "opt-3",
+            "text": "A test tömege (kg)",
+            "color": "#ffa602",
+            "shape": "●"
+          },
+          {
+            "id": "opt-4",
+            "text": "A súrlódási együttható",
+            "color": "#26890c",
+            "shape": "■"
+          }
+        ]
+      }
+    ]
+  }
+]

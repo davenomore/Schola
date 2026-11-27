@@ -323,10 +323,13 @@ export default function QuizArenaTool({ addNotification }) {
       });
       if (generated) {
         setShowAiModal(false);
-        // Open generated quiz in editor immediately so teacher can review & override!
+        // Automatikusan elmentjük a Kvízkönyvtárba, így semmiképp sem vész el:
+        await quizArenaService.saveQuiz(generated);
+        await loadQuizzes();
+        // Megnyitjuk a szerkesztőben azonnali áttekintésre és felülbírálásra:
         setEditingQuiz(generated);
         setViewMode('editor');
-        if (addNotification) addNotification(`A(z) "${generated.title}" kvíz sikeresen elkészült!`, 'success');
+        if (addNotification) addNotification(`A(z) "${generated.title}" kvíz elkészült és elmentve a Kvízkönyvtárba!`, 'success');
       }
     } catch (err) {
       if (addNotification) addNotification('AI generálási hiba: ' + err.message, 'error');
@@ -1534,20 +1537,46 @@ export default function QuizArenaTool({ addNotification }) {
 
                 {/* PLAYERS IN LOBBY */}
                 <div style={{ marginBottom: '28px' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '12px' }}>
-                    Csatlakozott játékosok ({activeSession.playersCount} diák):
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)' }}>
+                      Csatlakozott játékosok ({activeSession.playersCount || 0} diák):
+                    </div>
+                    {(activeSession.playersCount > 0 || (activeSession.players && activeSession.players.length > 0)) && (
+                      <button
+                        onClick={async () => {
+                          const res = await quizArenaService.clearAllPlayers();
+                          if (res && res.success) {
+                            setActiveSession(prev => ({ ...prev, players: [], playersCount: 0 }));
+                            if (addNotification) addNotification('Játékoslista kiürítve!', 'success');
+                          }
+                        }}
+                        style={{
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          border: '1px solid rgba(239, 68, 68, 0.25)',
+                          color: '#ef4444',
+                          fontSize: '11px',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          padding: '3px 8px',
+                          borderRadius: '6px'
+                        }}
+                      >
+                        🧹 Lista törlése
+                      </button>
+                    )}
                   </div>
-                  {activeSession.playersCount === 0 ? (
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '13px', fontStyle: 'italic' }}>
-                      Várakozás a diákok csatlakozására...
+
+                  {(!activeSession.players || activeSession.players.length === 0) ? (
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '13px', fontStyle: 'italic', padding: '12px' }}>
+                      Várakozás a diákok csatlakozására (olvassátok be a fenti QR-kódot)...
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'center', maxWidth: '680px', margin: '0 auto' }}>
                       {activeSession.players.map(p => (
                         <span
                           key={p.id}
                           style={{
-                            padding: '6px 16px',
+                            padding: '6px 14px',
                             borderRadius: '20px',
                             background: '#18181b',
                             color: '#ffffff',
@@ -1556,10 +1585,36 @@ export default function QuizArenaTool({ addNotification }) {
                             boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
                             display: 'inline-flex',
                             alignItems: 'center',
-                            gap: '6px'
+                            gap: '8px'
                           }}
                         >
-                          👤 {p.name}
+                          <span>👤 {p.name}</span>
+                          <button
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              const res = await quizArenaService.removePlayer(p.id);
+                              if (res && res.success) {
+                                setActiveSession(prev => ({
+                                  ...prev,
+                                  players: prev.players.filter(pl => pl.id !== p.id),
+                                  playersCount: Math.max(0, (prev.playersCount || 1) - 1)
+                                }));
+                              }
+                            }}
+                            title="Játékos eltávolítása"
+                            style={{
+                              background: 'transparent',
+                              border: 'none',
+                              color: '#a1a1aa',
+                              cursor: 'pointer',
+                              padding: '0 2px',
+                              fontSize: '12px',
+                              fontWeight: 900,
+                              lineHeight: 1
+                            }}
+                          >
+                            ✕
+                          </button>
                         </span>
                       ))}
                     </div>

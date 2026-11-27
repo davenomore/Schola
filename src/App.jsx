@@ -821,9 +821,9 @@ function MainApp() {
           </div>
         )}
 
-        {activeTab === 'eszközök' && (
+        {(activeTab === 'eszközök' || activeTab === 'quiz' || activeTab === 'kviz') && (
           <div className="dashboard-grid" style={{ gridTemplateColumns: '1fr', height: '100%', minHeight: 0 }}>
-            <TeacherTools addNotification={addNotification} />
+            <TeacherTools addNotification={addNotification} initialTool={activeTab === 'quiz' || activeTab === 'kviz' ? 'quiz' : undefined} />
           </div>
         )}
 

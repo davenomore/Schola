@@ -7,8 +7,14 @@ import InteractiveWallTool from './tools/InteractiveWallTool';
 import MentimeterTool from './tools/MentimeterTool';
 import QuizArenaTool from './tools/QuizArenaTool';
 
-const TeacherTools = ({ addNotification }) => {
-  const [activeTool, setActiveTool] = useState('randomizer');
+const TeacherTools = ({ addNotification, initialTool = 'randomizer' }) => {
+  const [activeTool, setActiveTool] = useState(initialTool || 'randomizer');
+
+  useEffect(() => {
+    if (initialTool) {
+      setActiveTool(initialTool);
+    }
+  }, [initialTool]);
   const [isDark, setIsDark] = useState(() => document.documentElement.classList.contains('dark'));
 
   useEffect(() => {

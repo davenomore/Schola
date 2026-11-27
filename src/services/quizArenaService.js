@@ -191,25 +191,55 @@ function parseQuizJson(rawText) {
 
 export const quizArenaService = {
   async getSavedQuizzes() {
+    let localQuizzes = [];
+    try {
+      const local = localStorage.getItem(LOCAL_STORAGE_SAVED_KEY);
+      if (local) localQuizzes = JSON.parse(local);
+    } catch {}
+
     try {
       const res = await fetch(`${API_BASE}/api/quiz-arena/saved`, { cache: 'no-store' });
       if (res.ok) {
         const json = await res.json();
-        if (json.success && json.quizzes) {
-          localStorage.setItem(LOCAL_STORAGE_SAVED_KEY, JSON.stringify(json.quizzes));
-          return json.quizzes;
+        if (json.success && Array.isArray(json.quizzes)) {
+          // Kétirányú összefésülés: sem a szerverről, sem a helyi böngészőből nem engedjük elveszni a kvízeket!
+          const mergedMap = new Map();
+          json.quizzes.forEach(q => { if (q && q.id) mergedMap.set(q.id, q); });
+          if (Array.isArray(localQuizzes)) {
+            localQuizzes.forEach(q => {
+              if (q && q.id && !mergedMap.has(q.id)) {
+                mergedMap.set(q.id, q);
+                fetch(`${API_BASE}/api/quiz-arena/saved`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ quiz: q })
+                }).catch(() => {});
+              }
+            });
+          }
+
+          const finalQuizzes = Array.from(mergedMap.values());
+          localStorage.setItem(LOCAL_STORAGE_SAVED_KEY, JSON.stringify(finalQuizzes));
+          return finalQuizzes;
         }
       }
     } catch {}
-    try {
-      const local = localStorage.getItem(LOCAL_STORAGE_SAVED_KEY);
-      return local ? JSON.parse(local) : DEFAULT_QUIZZES;
-    } catch {
-      return DEFAULT_QUIZZES;
-    }
+
+    return (Array.isArray(localQuizzes) && localQuizzes.length > 0) ? localQuizzes : DEFAULT_QUIZZES;
   },
 
   async saveQuiz(quiz) {
+    // 1. Azonnali mentés a böngésző perzisztens tárolójába (offline biztonsági másolat)
+    try {
+      const local = localStorage.getItem(LOCAL_STORAGE_SAVED_KEY);
+      const list = local ? JSON.parse(local) : [...DEFAULT_QUIZZES];
+      const idx = list.findIndex(q => q.id === quiz.id);
+      if (idx >= 0) list[idx] = quiz;
+      else list.unshift(quiz);
+      localStorage.setItem(LOCAL_STORAGE_SAVED_KEY, JSON.stringify(list));
+    } catch {}
+
+    // 2. Mentés a szerver merevlemezére
     try {
       const res = await fetch(`${API_BASE}/api/quiz-arena/saved`, {
         method: 'POST',
@@ -218,7 +248,7 @@ export const quizArenaService = {
       });
       if (res.ok) {
         const json = await res.json();
-        if (json.success) {
+        if (json.success && json.quizzes) {
           localStorage.setItem(LOCAL_STORAGE_SAVED_KEY, JSON.stringify(json.quizzes));
           return json.quiz;
         }
@@ -228,6 +258,13 @@ export const quizArenaService = {
   },
 
   async deleteQuiz(id) {
+    try {
+      const local = localStorage.getItem(LOCAL_STORAGE_SAVED_KEY);
+      if (local) {
+        const list = JSON.parse(local).filter(q => q.id !== id);
+        localStorage.setItem(LOCAL_STORAGE_SAVED_KEY, JSON.stringify(list));
+      }
+    } catch {}
     try {
       await fetch(`${API_BASE}/api/quiz-arena/saved/${id}`, { method: 'DELETE' });
     } catch {}
@@ -557,6 +594,30 @@ KÖVETELMÉNYEK:
     } catch (e) {
       return { success: false, message: e.message };
     }
+  },
+
+  async removePlayer(playerId) {
+    try {
+      const res = await fetch(`${API_BASE}/api/quiz-arena/kick`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId })
+      });
+      if (res.ok) return await res.json();
+    } catch {}
+    return null;
+  },
+
+  async clearAllPlayers() {
+    try {
+      const res = await fetch(`${API_BASE}/api/quiz-arena/kick`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ clearAll: true })
+      });
+      if (res.ok) return await res.json();
+    } catch {}
+    return null;
   },
 
   async startSession() {
